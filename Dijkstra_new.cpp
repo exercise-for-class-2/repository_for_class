@@ -1,24 +1,48 @@
 
-//関数使用
+/*
+[変更点]
+・関数Node_in()は不使用
+・Node node[6]の中身はソースコード内でベタ打ちした
+・ベタ打ちによる都合上, node[i].edges_cost[j]はすべて0で初期化した
+・struct Node{}内にx,y座標のデータメンバを追加した
+・x,y座標間のユークリッド距離を計算する関数calc_distance()を
+　node[6]のedges_costをinputする関数input_edges_cost()内で使用している
+・関数print_array()を少し変えて、各node間の距離を表示するようにした
+*/
 
 #include <iostream>
 #include <vector>
 #include <string>
 #include <fstream>
+#include <cmath>
 
 struct Node{                       //このノードから伸びるエッジの情報
   std::vector<int> edges_to;       //各エッジの接続先のノード番号
-  std::vector<int> edges_cost;     //各エッジのコスト
-  //Dijkstra法のためのデータ
-  bool done = false;                      //確定ノードか否か
-  int cost = -1;                       //このノードへの現時点で判明している最小コスト                
+  std::vector<double> edges_cost;  //各エッジのコスト
+  double x;                        //x座標
+  double y;                        //y座標
+  double cost;                        //このノードへの現時点で判明している最小コスト                
 };  
 
+double calc_distance(double x, double y){
+  return std::sqrt(x*x + y*y);
+}
+
+void input_edges_cost(Node node[], int s){
+  for(int i=0; i<s; i++){
+    int n = node[i].edges_to.size();
+    for(int j=0; j<n; j++){
+      node[i].edges_cost[j] = calc_distance((node[i].x - node[node[i].edges_to[j]].x), (node[i].y - node[node[i].edges_to[j]].y));   
+    }
+  }
+}
+
+/*
 void Node_in(struct Node *node){//ノードに値を入力する関数
 
     int node_num, edges_to, edges_cost;
     std::string name;
-    std::cout<<"FILENAME of dat:";
+    std::cout<<"FILENAME:";
     std::cin>>name;//ノードに関するデータを規定するdatを指定する
     std::ifstream file(name);//指定したdatファイルを開く
     std::string str;
@@ -30,13 +54,10 @@ void Node_in(struct Node *node){//ノードに値を入力する関数
         node[node_num].edges_to.push_back(edges_to);
         node[node_num].edges_cost.push_back(edges_cost);
         } 
-        
-        std::cout << "a\n";
-
 
     file.close();
-
 };
+*/
 
 void search_node(Node node[], int s){
   //各ノードまでのコストを計算
@@ -46,22 +67,22 @@ void search_node(Node node[], int s){
     int n = node[i].edges_to.size();	//node[i].edges_toの要素数
     if(i==0){
       while(j<n){
-	if(node[node[i].edges_to[j]].cost == -1){
-	  node[node[i].edges_to[j]].cost = node[i].edges_cost[j];
-	  j += 1;
-	}
+	      if(node[node[i].edges_to[j]].cost == -1){
+	        node[node[i].edges_to[j]].cost = node[i].edges_cost[j];
+	        j += 1;
+	      }
       }
       j = 0;
     }
     else{
       while(j<n){
-	if(node[node[i].edges_to[j]].cost == -1){
-	  node[node[i].edges_to[j]].cost = node[i].cost + node[i].edges_cost[j];
-	}
-	else if(node[i].cost + node[i].edges_cost[j] < node[node[i].edges_to[j]].cost){
-	  node[node[i].edges_to[j]].cost = node[i].cost + node[i].edges_cost[j];
-	}
-	j += 1;
+	      if(node[node[i].edges_to[j]].cost == -1){
+	        node[node[i].edges_to[j]].cost = node[i].cost + node[i].edges_cost[j];
+	      }
+	      else if(node[i].cost + node[i].edges_cost[j] < node[node[i].edges_to[j]].cost){
+	        node[node[i].edges_to[j]].cost = node[i].cost + node[i].edges_cost[j];
+	      }
+	      j += 1;
       }
       j = 0;
     }
@@ -77,7 +98,7 @@ void shortest_path(std::vector<int>& d, std::vector<int>& d_2, Node node[]){
   int flag = 1;
   while(1){
     if(flag == 2){
-    int s = d_2.size();
+      int s = d_2.size();
       for(int k=0; k<s; k++){
 		if(node[i].edges_to[j] == d_2[k]){
 	  		j += 1;
@@ -88,7 +109,6 @@ void shortest_path(std::vector<int>& d, std::vector<int>& d_2, Node node[]){
     int n = node[i].edges_to.size();
     while(j<n){
       if(node[i].cost < node[node[i].edges_to[j]].cost && (node[i].cost + node[i].edges_cost[j]) == node[node[i].edges_to[j]].cost){
-		node[node[i].edges_to[j]].done = true;
 		d.push_back(node[i].edges_to[j]);
 		i = node[i].edges_to[j];     //iを次のノードにする
 		flag = 0;
@@ -114,12 +134,31 @@ void shortest_path(std::vector<int>& d, std::vector<int>& d_2, Node node[]){
 
 void print_array(Node node[], int s, std::vector<int>& d){
   //各ノードまでのコストを表示
+  std::cout << "[cost of nodes]\n";
   for(int i=0; i<s; i++){
     std::cout << "node:" << i << " cost:" << node[i].cost << '\n';
   }
+  std::cout << '\n';
+
+  //各ノード間の距離を表示
+  int label[s];
+  for(int i=0; i<s; i++){
+      label[i] = 0;
+  }
+  std::cout << "[distance between nodes]\n";
+  for(int i=0; i<s; i++){
+    int n = node[i].edges_to.size();
+    for(int j=0; j<n; j++){
+      if(label[node[i].edges_to[j]] == 0){
+        std::cout << i << "-" << node[i].edges_to[j] << " : " << node[i].edges_cost[j] << '\n';
+      }
+    }
+    label[i] = 1;
+  }
+  std::cout << '\n';
 
   //最短経路を表示
-  std::cout << "Dijkstra_route\n";
+  std::cout << "[Dijkstra route]\n";
   int s_d = d.size();
   for(int i=0; i<s_d; i++){
     std::cout << d[i] << " ";
@@ -129,12 +168,20 @@ void print_array(Node node[], int s, std::vector<int>& d){
 
 int main(){
 
-  Node node[6];
-  Node_in(node);
+  Node node[6] = 
+    {
+      {{1,2,3},   {0,0,0},   0.0, 0.0, -1},
+      {{0,2,5},   {0,0,0},   4.0, 9.0, -1},
+      {{0,1,3,4}, {0,0,0,0}, 3.0, 1.0, -1},
+      {{0,2,4},   {0,0,0},   1.0,-3.0, -1},
+      {{2,3,5},   {0,0,0},   8.0,-2.0, -1},
+      {{1,4},     {0,0},     6.0, 2.0, -1}
+    };
+ // Node_in(node);
+
+  input_edges_cost(node, 6);  //edges_costを計算
 
   node[0].cost = 0;    	//初期化
-  node[0].done = true;	//初期化
-
   search_node(node, 6);
 
   std::vector<int> d;		//最短経路を保存していく
@@ -146,3 +193,27 @@ int main(){
 
   return 0;
 }
+
+/*
+[cost of nodes]
+node:0 cost:0
+node:1 cost:9.84886
+node:2 cost:3.16228
+node:3 cost:3.16228
+node:4 cost:8.99323
+node:5 cost:13.4654
+
+[distance between nodes]
+0-1 : 9.84886
+0-2 : 3.16228
+0-3 : 3.16228
+1-2 : 8.06226
+1-5 : 7.28011
+2-3 : 4.47214
+2-4 : 5.83095
+3-4 : 7.07107
+4-5 : 4.47214
+
+[Dijkstra route]
+0 2 4 5
+*/
