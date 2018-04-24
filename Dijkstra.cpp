@@ -1,16 +1,36 @@
-
-//関数使用
-
 #include <iostream>
 #include <vector>
+#include <string>
+#include <fstream>
 
 struct Node{                       //このノードから伸びるエッジの情報
   std::vector<int> edges_to;       //各エッジの接続先のノード番号
   std::vector<int> edges_cost;     //各エッジのコスト
   //Dijkstra法のためのデータ
-  bool done;                      //確定ノードか否か
-  int cost;                       //このノードへの現時点で判明している最小コスト                
+  int cost = -1;                       //このノードへの現時点で判明している最小コスト                
 };  
+
+void Node_in(struct Node *node){//ノードに値を入力する関数
+
+    int node_num, edges_to, edges_cost;
+    std::string name;
+    std::cout<<"FILENAME of dat:";
+    std::cin>>name;//ノードに関するデータを規定するdatを指定する
+    std::ifstream file(name);//指定したdatファイルを開く
+    std::string str;
+
+    while(std::getline(file,str)){
+        node_num=std::stoi(&str[0]);
+        edges_to=std::stoi(&str[2]);
+        edges_cost=std::stoi(&str[4]);
+        node[node_num].edges_to.push_back(edges_to);
+        node[node_num].edges_cost.push_back(edges_cost);
+        } 
+        
+        std::cout << "a\n";
+
+    file.close();
+};
 
 void search_node(Node node[], int s){
   //各ノードまでのコストを計算
@@ -20,22 +40,22 @@ void search_node(Node node[], int s){
     int n = node[i].edges_to.size();	//node[i].edges_toの要素数
     if(i==0){
       while(j<n){
-	if(node[node[i].edges_to[j]].cost == -1){
-	  node[node[i].edges_to[j]].cost = node[i].edges_cost[j];
-	  j += 1;
-	}
+	      if(node[node[i].edges_to[j]].cost == -1){
+	        node[node[i].edges_to[j]].cost = node[i].edges_cost[j];
+	        j += 1;
+	      }
       }
       j = 0;
     }
     else{
       while(j<n){
-	if(node[node[i].edges_to[j]].cost == -1){
-	  node[node[i].edges_to[j]].cost = node[i].cost + node[i].edges_cost[j];
-	}
-	else if(node[i].cost + node[i].edges_cost[j] < node[node[i].edges_to[j]].cost){
-	  node[node[i].edges_to[j]].cost = node[i].cost + node[i].edges_cost[j];
-	}
-	j += 1;
+	      if(node[node[i].edges_to[j]].cost == -1){
+	        node[node[i].edges_to[j]].cost = node[i].cost + node[i].edges_cost[j];
+	      }
+	      else if(node[i].cost + node[i].edges_cost[j] < node[node[i].edges_to[j]].cost){
+	        node[node[i].edges_to[j]].cost = node[i].cost + node[i].edges_cost[j];
+	      }
+	      j += 1;
       }
       j = 0;
     }
@@ -51,23 +71,23 @@ void shortest_path(std::vector<int>& d, std::vector<int>& d_2, Node node[]){
   int flag = 1;
   while(1){
     if(flag == 2){
-      for(int k=0; k<d_2.size(); k++){
-	if(node[i].edges_to[j] == d_2[k]){
-	  j += 1;
-	}
+      int s = d_2.size();
+        for(int k=0; k<s; k++){
+		      if(node[i].edges_to[j] == d_2[k]){
+	  		  j += 1;
+		    }
       }
     }
     flag = 1;
     int n = node[i].edges_to.size();
     while(j<n){
       if(node[i].cost < node[node[i].edges_to[j]].cost && (node[i].cost + node[i].edges_cost[j]) == node[node[i].edges_to[j]].cost){
-	node[node[i].edges_to[j]].done = true;
-	d.push_back(node[i].edges_to[j]);
-	i = node[i].edges_to[j];     //iを次のノードにする
-	flag = 0;
+		    d.push_back(node[i].edges_to[j]);
+		    i = node[i].edges_to[j];     //iを次のノードにする
+		    flag = 0;
       }
       if(flag==0){
-	break;
+		    break;
       }
       j += 1;
     }
@@ -93,7 +113,8 @@ void print_array(Node node[], int s, std::vector<int>& d){
 
   //最短経路を表示
   std::cout << "Dijkstra_route\n";
-  for(int i=0; i<d.size(); i++){
+  int s_d = d.size();
+  for(int i=0; i<s_d; i++){
     std::cout << d[i] << " ";
   }
   std::cout << '\n';
@@ -101,18 +122,10 @@ void print_array(Node node[], int s, std::vector<int>& d){
 
 int main(){
 
-  Node node[6] = 
-    {
-      {{1,2,3},   {5,4,2},   false, -1},
-      {{0,2,5},   {5,2,6},   false, -1},
-      {{0,1,3,4}, {4,2,3,2}, false, -1},
-      {{0,2,4},   {2,3,6},   false, -1},
-      {{2,3,5},   {2,6,4},   false, -1},
-      {{1,4},     {6,4},     false, -1}
-    };	
+  Node node[6];
+  Node_in(node);
 
   node[0].cost = 0;    	//初期化
-  node[0].done = true;	//初期化
 
   search_node(node, 6);
 
@@ -125,20 +138,3 @@ int main(){
 
   return 0;
 }
-
-/*
-[備考]
-構造体Nodeのメンバ変数の bool done;
-の使い道がなかった。
-→方法が間違ってる？
-/*
-
-node:0 cost:0
-node:1 cost:5
-node:2 cost:4
-node:3 cost:2
-node:4 cost:6
-node:5 cost:10
-Dijkstra_route
-0 2 4 5 
-*/
