@@ -102,7 +102,7 @@ int main(){
     fflush(fp);
     pclose(fp);
 
-    std::cout << "Plese check png_files(path.png & enspoints.png)\n";
+    std::cout << "Plese check png_files(path.png & endpoints.png)\n";
     std::cout << "created by this program\n";
 
     return 0;
