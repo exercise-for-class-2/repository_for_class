@@ -6,6 +6,9 @@
 #include <vector>
 
 
+
+bool check(int map[][10],int i,int j,int x,int y);
+
 int main(){
     int x,y;
     std::cout << "xのサイズとyのサイズを入力してください(一行で入力してください）\n";
@@ -15,7 +18,7 @@ int main(){
         return -1;
     }
     std::string str;
-    int map[x][y];                          //グラフの状態を格納する配列
+    int map[x][10];                          //グラフの状態を格納する配列
     int tmp;
     std::string file = "graph.dat";         //参照するファイル
     std::ifstream ifile(file.c_str());
@@ -34,7 +37,7 @@ int main(){
     std::ofstream ofp(ofile.c_str());
     for(int i=0;i<y;i++){
         for(int j=0;j<x;j++){
-            if(map[j][i]==1){
+            if(check(map,i,j,x,y)){
                 ofp << j << " " << i << "\n";
             }
         }
@@ -49,4 +52,20 @@ int main(){
     std::cin.get();
     pclose(fp);
     return 0;
+}
+
+bool check(int map[][10],int i,int j,int x,int y){
+    if(i==0 || i==y-1|| j==0 || j==x-1){
+        return true;
+    }
+    if(map[j-1][i]==1 && map[j+1][i]==1){
+        return false;
+    }
+    if(map[j][i-1]==1 && map[j][i+1]==1){
+        return false;
+    }
+    if(map[j][i]==1){
+        return true;
+    }
+    return false;
 }
