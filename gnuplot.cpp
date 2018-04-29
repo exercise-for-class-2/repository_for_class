@@ -7,16 +7,19 @@
 
 
 int main(){
-    FILE *fp = popen("gnuplot","w");
+    int x,y;
+    std::cout << "xのサイズとyのサイズを入力してください(一行で入力してください）\n";
+    std::cin >> x >> y;
+    FILE *fp = popen("gnuplot","w");        //gnuplotを開く
     if(fp==NULL){
         return -1;
     }
     std::string str;
-    int map[30][10];
+    int map[x][y];                          //グラフの状態を格納する配列
     int tmp;
-    std::string file = "graph.dat";
+    std::string file = "graph.dat";         //参照するファイル
     std::ifstream ifile(file.c_str());
-    for(int i=0;i<10;i++){
+    for(int i=0;i<y;i++){                   //配列に格納する
         std::getline(ifile,str);
         std::istringstream iss(str);
         int j=0;
@@ -25,11 +28,12 @@ int main(){
             j++;
         }
     }
+
     ifile.close();
-    std::string ofile = "output.dat";
+    std::string ofile = "output.dat";       //出力するデータをファイルに書き込む
     std::ofstream ofp(ofile.c_str());
-    for(int i=0;i<10;i++){
-        for(int j=0;j<30;j++){
+    for(int i=0;i<y;i++){
+        for(int j=0;j<x;j++){
             if(map[j][i]==1){
                 ofp << j << " " << i << "\n";
             }
@@ -37,11 +41,11 @@ int main(){
     }
     ofp.close();
 
-    fputs("set mouse\n",fp);
-    fputs("plot 'output.dat'\n",fp);
+    fputs("plot 'output.dat'\n",fp);        //gnuplot上の操作
 
 
     fflush(fp);
+    std::cin.get();
     std::cin.get();
     pclose(fp);
     return 0;
