@@ -1,4 +1,3 @@
-
 /*
 [変更点]
 ・関数Node_in()は不使用
@@ -15,6 +14,7 @@
 #include <string>
 #include <fstream>
 #include <cmath>
+#include <sstream>
 
 struct Node{                       //このノードから伸びるエッジの情報
   std::vector<int> edges_to;       //各エッジの接続先のノード番号
@@ -37,27 +37,26 @@ void input_edges_cost(Node node[], int s){
   }
 }
 
-/*
 void Node_in(struct Node *node){//ノードに値を入力する関数
 
     int node_num, edges_to, edges_cost;
     std::string name;
     std::cout<<"FILENAME:";
     std::cin>>name;//ノードに関するデータを規定するdatを指定する
-    std::ifstream file(name);//指定したdatファイルを開く
+    std::ifstream file(name.c_str());//指定したdatファイルを開く
     std::string str;
 
     while(std::getline(file,str)){
-        node_num=std::stoi(&str[0]);
-        edges_to=std::stoi(&str[2]);
-        edges_cost=std::stoi(&str[4]);
-        node[node_num].edges_to.push_back(edges_to);
-        node[node_num].edges_cost.push_back(edges_cost);
-        } 
+      std::istringstream iss(str);
+      iss >> node_num >> edges_to >> edges_cost;
+      std::cout << node_num << "," << edges_to << "," << edges_cost << "\n";
+      node[node_num].edges_to.push_back(edges_to);
+      node[node_num].edges_cost.push_back(edges_cost);
+    } 
 
     file.close();
 };
-*/
+
 
 void search_node(Node node[], int s){
   //各ノードまでのコストを計算
@@ -167,8 +166,10 @@ void print_array(Node node[], int s, std::vector<int>& d){
 }
 
 int main(){
-
-  Node node[6] = 
+  int n_num;
+  std::cin >> n_num;
+  Node node[n_num];
+  /*Node node[6] = 
     {
       {{1,2,3},   {0,0,0},   0.0, 0.0, -1},
       {{0,2,5},   {0,0,0},   4.0, 9.0, -1},
@@ -177,7 +178,8 @@ int main(){
       {{2,3,5},   {0,0,0},   8.0,-2.0, -1},
       {{1,4},     {0,0},     6.0, 2.0, -1}
     };
- // Node_in(node);
+    */
+  Node_in(node);
 
   input_edges_cost(node, 6);  //edges_costを計算
 
