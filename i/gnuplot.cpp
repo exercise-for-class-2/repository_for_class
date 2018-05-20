@@ -44,7 +44,11 @@ int main(){
     }
     ofp.close();
 
-    fputs("plot 'output.dat'\n",fp);        //gnuplot上の操作
+    fputs("set style line 1 pointtype 7\n",fp);
+    fputs("plot 'output.dat' linestyle 1\n",fp);      //gnuplot上の操作
+
+
+
 
 
     fflush(fp);
@@ -117,5 +121,5 @@ bool check(int map[][10],int i,int j,int x,int y){
         return true;
     }
     
-    return false;
+    return true;
 }
