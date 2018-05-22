@@ -91,8 +91,8 @@ int spc_ex2(double x, double y){
 void spcmap(std::string file, int (*spc)(double, double)) {
     int x, y, t;
     std::ofstream ofp(file.c_str());
-    for(y = 0; y <= SIZE; y++) {
-        for(x = 0; x <= SIZE; x++){
+    for(x = 0; x <= SIZE; x++) {
+        for(y = 0; y <= SIZE; y++){
            t = spc(x, y);
            ofp << t << " ";
         }
