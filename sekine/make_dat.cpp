@@ -30,8 +30,8 @@ int main() {
 
     int map[X][Y];
     input_map(file1, map, x, y);          //map[x][y]にfile1の内容を代入していく
-    int map_copy[X][Y];
-    change_map(map, map_copy);
+    //int map_copy[X][Y];
+    //change_map(map, map_copy);
 
     std::string ofile1 = "xy_all2.dat";   //全体を描画するためのfile
     std::string ofile2 = "xy_edges2.dat"; //端点を描画するためのfile
@@ -174,11 +174,11 @@ void output_dat(std::string ofile, int map[][Y], int x, int y){
         ofp.close();
     }
 }
-
+/*
 void change_map(int map[][Y], int map_copy[][Y]){
     for(int i=0; i<X; i++){
         for(int j=0; j<Y; j++){
-            
+
         }
     }
-}
+}*/
