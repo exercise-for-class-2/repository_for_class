@@ -31,8 +31,8 @@ void avoidance(std::vector<int> d,drone drone){ //d...’n}ã‚Å‚ÌÅ’ZŒo˜H  drone.
 			drone.nexty=0;
 		}
 		
-		drone.x = drone.nextx;
-		drone.y = drone.nexty;
+		drone.x += drone.nextx;
+		drone.y += drone.nexty;
 		
 		//if(drone.x == Œo˜Hã && drone.y == Œo˜Hã){ //‚±‚Ì”»’è–@‚Ç‚¤‚µ‚æ‚¤
 			flag=1;
@@ -50,8 +50,8 @@ void dronego(std::vector<int> d,drone drone){ //d...’n}ã‚Å‚ÌÅ’ZŒo˜H  drone...
 		avoidance(d,drone);//áŠQ•¨‰ñ”ğ
 		
 	}else{
-		drone.x = drone.nextx;
-		drone.y = drone.nexty;
+		drone.x += drone.nextx;
+		drone.y += drone.nexty;
 		//drone.nextx = ??  nextx‚Ænexty‚ğ‚Ç‚¤‚â‚Á‚ÄŒˆ‚ß‚é‚Ì‚©‚í‚©‚ç‚È‚¢
 		//drone.nexty = ??
 	}
