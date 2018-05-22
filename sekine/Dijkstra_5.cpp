@@ -18,14 +18,17 @@
 #define G_X 95  //goalのx座標
 #define G_Y 95  //goalのy座標
 #define MAX 100
+#define MAX_COST 10000
 
 struct Node{                       //このノードから伸びるエッジの情報
   std::vector<int> edges_to;       //各エッジの接続先のノード番号
   std::vector<double> edges_cost;  //各エッジのコスト
   double x;                        //x座標
   double y;                        //y座標
+  int path = -1;                   //このノードに入ってくるノード
   double cost = -1;                //このノードへの現時点で判明している最小コスト
-  int flag = 0;                    //未探索のノードは0, 探索済みは1               
+  bool flag = false;               //探索済みか否か
+  bool done = false;               //確定ノードか否か               
 };
 
 struct Stack{
@@ -67,10 +70,8 @@ void input_edges_cost(Node node[], int s);
 void Node_in(struct Node node[], std::string file);
 //各ノードまでのコストを計算
 void search_node(Node node[], int s);
-//探索済みのノードのうち, 未探索のedges_toを持つノードの添え字を返す
-int search_next_node(Node node[], int k, int n);
-//最短経路の計算
-void shortest_path(std::vector<int>& d, std::vector<int>& d_2, Node node[], int goal);
+//探索済みノードから確定ノードを探す
+int  search_confirm_node(Node node[], int k, int s);
 //色々std::coutしてくれます
 void print_array(Node node[], int s, std::vector<int>& d);
 //node.datの各ノードとその向こう先を書き込む関数 file = node2.dat
@@ -103,29 +104,24 @@ int main(){
 
   Node_in(node, file4);              //nodeの(x, y)を代入
   make_node(file2, map, node, n);    //node.datに記入, node[].edges_toに代入
-  std::cout << "OK1\n";
 
   input_edges_cost(node, n);    //edges_costを計算
-
-  node[0].cost = 0;    	        //初期化
   search_node(node, n);         //各ノードまでのコストを代入
 
   std::vector<int> d;          //最短経路を保存していく
   d.push_back(0);              //スタートノードをpush_back ここからゴールまでの最短経路をpush_backしていく
   std::vector<int> d_2;        //最短経路以外のたどったノードを保存していく
 
-  std::cout << "OK2\n";
-  //shortest_path(d, d_2, node, n-1); //最短経路をdに保存
   print_array(node, n, d);     //いろいろ出力
 
-  //gnuplot_spc(file3);          //地図を保存
-  //gnuplot_spc(file4);          //端点を保存
+  gnuplot_spc(file3);          //地図を保存
+  gnuplot_spc(file4);          //端点を保存
 
 
   clock_t end = clock();
   //演算時間の表示
   std::cout << "Time of calculation:" << (double)(end-start)/CLOCKS_PER_SEC << ".sec\n";
-  //std::cout << "Please check 'xy_all2.png' & 'xy_edges2.png'\n";
+  std::cout << "Please check 'xy_all2.png' & 'xy_edges2.png'\n";
     
   return 0;
 }
@@ -178,73 +174,61 @@ void Node_in(struct Node node[], std::string file){
 
 void search_node(Node node[], int s){
   int cnt = 0;    //sになったらすべて探索済み
+  int n_max;
   int i = 0;
   int j = 0;
   int n = node[i].edges_to.size();
-  node[i].cost = 0;
-  node[i].flag = 1;
+  node[i].cost = 0;       //startまでのcostは0
+  node[i].path = 0;
+  node[i].flag = true;    //探索済み
+  node[i].done = true;    //確定ノード
   cnt += 1;
   while(j<n){
 	  if(node[node[i].edges_to[j]].cost == -1){
 	    node[node[i].edges_to[j]].cost = node[i].edges_cost[j];
-      node[node[i].edges_to[j]].flag = 1;
-      cnt += 1;
+      node[node[i].edges_to[j]].flag = true;
+      node[node[i].edges_to[j]].path = i;
 	    j += 1;
 	  }
   }
-  i = search_next_node(node, 0, n);
-  while(1){
+  int k = i;
+  i = search_confirm_node(node, k, s);   //確定ノードを探す
+  node[i].done = true;                   //node iを確定ノードにする
+  cnt += 1;
+  while(cnt < s){   //goalが確定ノードになるまで繰り返す
     j = 0;
     n = node[i].edges_to.size();	//node[i].edges_toの要素数
     while(j<n){
       if(node[node[i].edges_to[j]].cost == -1){
         node[node[i].edges_to[j]].cost = node[i].cost + node[i].edges_cost[j];
-        node[node[i].edges_to[j]].flag = 1;
-        cnt += 1;
+        node[node[i].edges_to[j]].flag = true;
+        node[node[i].edges_to[j]].path = i;
       }
       else if(node[i].cost + node[i].edges_cost[j] < node[node[i].edges_to[j]].cost){
         node[node[i].edges_to[j]].cost = node[i].cost + node[i].edges_cost[j];
+        node[node[i].edges_to[j]].path = i;
       }
       j += 1;
     }
-    if(cnt == 40){
-      break;
-    }
-    int k = i;
-    i = search_next_node(node, k, n);
-    j = 0;
-    while(k == i){
-      Stack stack;
-      if(j == n){
-        j = 0;
-        int m = stack.pop();
-        k = node[m].edges_to[j];
-        n = node[m].edges_to.size();
-        i = search_next_node(node, k, n);
-        j += 1;
-      }
-      else{
-        k = node[i].edges_to[j];
-        stack.push(k);
-        n = node[i].edges_to.size();
-        i = search_next_node(node, k, n);
-        j += 1;
-      }
-    }
+    k = i;
+    i = search_confirm_node(node, k, s);   //確定ノードを探す
+    node[i].done = true;                   //node iを確定ノードにする
+    cnt += 1;
   }
 }
 
-int search_next_node(Node node[], int k, int n){
-  for(int j=0; j<n; j++){
-    int n_edges_to = node[node[k].edges_to[j]].edges_to.size();
-    for(int l=0; l<n_edges_to; l++){
-      int m = node[node[k].edges_to[j]].edges_to[l];  //start(node[k])の先の探索済みノードから, 向かうノード
-      if(node[m].flag == 0){                      //それがもし未探索なら
-        return node[k].edges_to[j];               //未探索ノードを持つnode[k].edges_to[j]を返す
+int search_confirm_node(Node node[], int k, int s){
+  int i, j;
+  int min = MAX_COST;
+  for(int j=0; j<s; j++){
+    if((node[j].flag == true) && (node[j].done == false)){
+      if(node[j].cost < min){
+        min = node[j].cost;
+        i = j;
       }
     }
   }
-  return k;                                       //すべて探索済みならスタート0に戻り未探索を探す
+  return i;
 }
 
 void shortest_path(std::vector<int>& d, std::vector<int>& d_2, Node node[], int goal){
@@ -317,15 +301,28 @@ void print_array(Node node[], int s, std::vector<int>& d){
     std::cout << "node:" << i << " cost:" << node[i].cost << '\n';
   }
   std::cout << '\n';
-/*
-  //最短経路を表示
-  std::cout << "[Dijkstra route]\n";
-  int s_d = d.size();
-  for(int i=0; i<s_d; i++){
-    std::cout << d[i] << " ";
+
+  //各ノードに入ってくるノード
+  std::cout << "[path]\n";
+  for(int i=0; i<s; i++){
+    std::cout << i << "-" << node[i].path << '\n';
   }
   std::cout << '\n';
-*/
+
+  //最短経路を表示
+  std::cout << "[Dijkstra rote]\n";
+  int dij[s];
+  int i_d = 0;
+  int k = s-1;
+  dij[i_d++] = k;
+  while(k != 0){
+    dij[i_d++] = node[k].path;
+    k = node[k].path;
+  }
+  for(int i=i_d-1; i>=0; i--){
+    std::cout << dij[i] << " ";
+  }
+  std::cout << '\n' << '\n';
 }
 
 //node.datに各ノードとその向かう先を書き込む関数
@@ -387,7 +384,7 @@ int gnuplot_spc(std::string ofile){
         fprintf(gp, "set output 'xy_edges2.png'\n");
         fprintf(gp, "plot 'xy_edges2.dat' linestyle 1\n");
     }
-    system("pause"); fprintf(gp, "exit\n");
+    //system("pause"); fprintf(gp, "exit\n");
     return _pclose(gp);
 }
 
@@ -396,8 +393,6 @@ bool check_wall(Node node[], int map[][Y], int i_s, int i_g){
   int s_y = node[i_s].y;
   int g_x = node[i_g].x;
   int g_y = node[i_g].y;
-
-  std::cout << s_x << " "<< s_y << " "<< g_x << " "<< g_y << '\n';
 
   bool k = check_wall_last(map, s_x, s_y, g_x, g_y);
   return k;
@@ -437,7 +432,6 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
     int j;
     for(j=1; j<=std::abs(d_y); j++){
       j_y = j * sign_y;
-      //std::cout << s_y+j_y << " " << map[s_x][s_y+j_y] << '\n';
       if(flag == 0){
           if(map[s_x][s_y+j_y] == 0)  flag = 1;
         }
@@ -449,18 +443,15 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
         if(map[s_x-1][s_y+j_y]==1 && map[s_x+1][s_y+j_y]==1)  flag = 3;
       }
       if(flag == 3){
-        std::cout << "false1\n";
         return false;
       }
     }
-    std::cout << "flag:" << flag << "true_01\n";
     return true;
   }
   else if(flag_d == 2){//y座標が等しい
     int i;
     for(i=1; i<=std::abs(d_x); i++){
       i_x = i * sign_x;
-      //std::cout << s_x+i_x << " " << map[s_x+i_x][s_y] << '\n';
       if(flag == 0){
           if(map[s_x+i_x][s_y] == 0)  flag = 1;
         }
@@ -472,11 +463,9 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
         if(map[s_x+i_x][s_y-1]==1 && map[s_x+i_x][s_y+1]==1)  flag = 3;
       }
       if(flag == 3){
-        std::cout << "false1\n";
         return false;
       }
     }
-    std::cout << "flag:" << flag << "true_02\n";
     return true;
   }
   else{
@@ -489,19 +478,15 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
           int flag_ij = 1;
           j_y = j * sign_y;
           if(flag_ij == 1 && flag == 0){
-            //if(map[s_x+i_x][s_y    ] == 0){ flag_ij = 0; flag = 1;}
             if(map[s_x+i_x][s_y+j_y] == 0){ flag_ij = 0; flag = 1;}
           }
           if(flag_ij == 1 && flag == 1){
-            //if(map[s_x+i_x][s_y    ] == 1){ flag_ij = 0; flag = 2;}
             if(map[s_x+i_x][s_y+j_y] == 1){ flag_ij = 0; flag = 2;}
           }
           if(flag_ij == 1 && flag == 2){
-            //if(map[s_x+i_x][s_y    ] == 0)  flag = 3;
             if(map[s_x+i_x][s_y+j_y] == 0)  flag = 3;
           }
           if(flag == 3){
-            std::cout << "false1\n";
             return false;
           }
           cnt += 1;
@@ -521,12 +506,10 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
           if(map[s_x+i_x][s_y+j_y] == 0)  flag = 3;
         }
         if(flag == 3){
-          std::cout << "false1\n";
           return false;
         }
         j += 1;
       }
-      std::cout << "true1\n";
       return true;
     }
     else{
@@ -538,19 +521,15 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
           int flag_ij = 1;
           i_x = i * sign_x;
           if(flag_ij == 1 && flag == 0){
-            //if(map[s_x    ][s_y+j_y] == 0){ flag_ij = 0; flag = 1;}
             if(map[s_x+i_x][s_y+j_y] == 0){ flag_ij = 0; flag = 1;}
           }
           if(flag_ij == 1 && flag == 1){
-            //if(map[s_x    ][s_y+j_y] == 1){ flag_ij = 0; flag = 2;}
             if(map[s_x+i_x][s_y+j_y] == 1){ flag_ij = 0; flag = 2;}
           }
           if(flag_ij == 1 && flag == 2){
-            //if(map[s_x    ][s_y+j_y] == 0)  flag = 3;
             if(map[s_x+i_x][s_y+j_y] == 0)  flag = 3;
           }
           if(flag == 3){
-            std::cout << "false2\n";
             return false;
           }
           cnt += 1;
@@ -570,250 +549,11 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
           if(map[s_x+i_x][s_y+j_y] == 0)  flag = 3;
         }
         if(flag == 3){
-          std::cout << "false2\n";
           return false;
         }
         i += 1;
       }
-      std::cout << "true2\n";
       return true;
     }
   }
 }
-
-/*
-[coodinate of nodes]
-0(5,5)
-1(10,30)
-2(10,50)
-3(10,60)
-4(10,90)
-5(20,10)
-6(20,40)
-7(20,60)
-8(20,80)
-9(20,90)
-10(30,10)
-11(30,40)
-12(30,80)
-13(30,90)
-14(40,10)
-15(40,70)
-16(40,80)
-17(50,20)
-18(50,40)
-19(50,50)
-20(50,70)
-21(50,80)
-22(60,10)
-23(60,50)
-24(60,60)
-25(70,20)
-26(70,60)
-27(70,70)
-28(80,20)
-29(80,30)
-30(80,40)
-31(80,60)
-32(80,70)
-33(90,20)
-34(90,30)
-35(90,40)
-36(90,50)
-37(90,60)
-38(90,70)
-39(95,95)
-
-[distance between nodes]
-0-1 : 25.4951
-1-5 : 22.3607
-1-6 : 14.1421
-2-3 : 10
-2-6 : 14.1421
-2-7 : 14.1421
-2-11 : 22.3607
-2-19 : 40
-2-23 : 50
-2-36 : 80
-3-7 : 10
-3-15 : 31.6228
-3-19 : 41.2311
-3-20 : 41.2311
-4-8 : 14.1421
-4-9 : 10
-4-39 : 85.1469
-5-6 : 30
-5-10 : 10
-5-11 : 31.6228
-5-14 : 20
-5-22 : 40
-6-10 : 31.6228
-6-11 : 10
-7-15 : 22.3607
-7-19 : 31.6228
-7-20 : 31.6228
-7-24 : 40
-8-9 : 10
-8-12 : 10
-8-13 : 14.1421
-8-15 : 22.3607
-8-16 : 20
-9-12 : 14.1421
-9-13 : 10
-9-39 : 75.1665
-10-11 : 30
-10-14 : 10
-10-22 : 30
-11-14 : 31.6228
-12-13 : 10
-12-15 : 14.1421
-12-16 : 10
-13-15 : 22.3607
-13-16 : 14.1421
-13-21 : 22.3607
-13-39 : 65.192
-14-17 : 14.1421
-14-22 : 20
-14-25 : 31.6228
-15-16 : 10
-15-20 : 10
-15-21 : 14.1421
-15-27 : 30
-16-20 : 14.1421
-16-21 : 10
-16-27 : 31.6228
-16-32 : 41.2311
-16-38 : 50.9902
-17-22 : 14.1421
-17-25 : 20
-17-28 : 30
-17-29 : 31.6228
-17-33 : 40
-17-34 : 41.2311
-18-19 : 10
-18-20 : 30
-18-23 : 14.1421
-18-24 : 22.3607
-18-29 : 31.6228
-18-30 : 30
-18-35 : 40
-18-36 : 41.2311
-19-20 : 20
-19-21 : 30
-19-23 : 10
-19-24 : 14.1421
-19-30 : 31.6228
-19-35 : 41.2311
-19-36 : 40
-20-21 : 10
-20-23 : 22.3607
-20-24 : 14.1421
-20-26 : 22.3607
-20-27 : 20
-20-32 : 30
-20-38 : 40
-21-27 : 22.3607
-21-32 : 31.6228
-21-38 : 41.2311
-22-25 : 14.1421
-23-24 : 10
-23-26 : 14.1421
-23-27 : 22.3607
-23-30 : 22.3607
-23-31 : 22.3607
-23-35 : 31.6228
-23-36 : 30
-23-37 : 31.6228
-24-26 : 10
-24-27 : 14.1421
-24-31 : 20
-24-36 : 31.6228
-25-28 : 10
-25-29 : 14.1421
-25-33 : 20
-25-34 : 22.3607
-26-27 : 10
-26-31 : 10
-26-32 : 14.1421
-26-36 : 22.3607
-26-37 : 20
-27-31 : 14.1421
-27-32 : 10
-27-38 : 20
-28-29 : 10
-28-30 : 20
-28-33 : 10
-28-34 : 14.1421
-28-35 : 22.3607
-28-36 : 31.6228
-29-30 : 10
-29-33 : 14.1421
-29-34 : 10
-29-35 : 14.1421
-29-36 : 22.3607
-30-33 : 22.3607
-30-34 : 14.1421
-30-35 : 10
-30-36 : 14.1421
-31-32 : 10
-31-36 : 14.1421
-31-37 : 10
-31-38 : 14.1421
-32-36 : 22.3607
-32-37 : 14.1421
-32-38 : 10
-33-34 : 10
-33-35 : 20
-34-35 : 10
-34-36 : 20
-34-37 : 30
-35-36 : 10
-35-37 : 20
-36-37 : 10
-36-38 : 20
-37-38 : 10
-
-[cost of nodes]
-node:0 cost:0
-node:1 cost:25.4951
-node:2 cost:53.7794
-node:3 cost:63.7794
-node:4 cost:126.785
-node:5 cost:47.8558
-node:6 cost:39.6372
-node:7 cost:67.9215
-node:8 cost:112.643
-node:9 cost:122.643
-node:10 cost:57.8558
-node:11 cost:49.6372
-node:12 cost:104.424
-node:13 cost:112.643
-node:14 cost:67.8558
-node:15 cost:90.2822
-node:16 cost:100.282
-node:17 cost:175.402
-node:18 cost:103.779
-node:19 cost:93.7794
-node:20 cost:99.5443
-node:21 cost:104.424
-node:22 cost:87.8558
-node:23 cost:103.779
-node:24 cost:107.922
-node:25 cost:155.402
-node:26 cost:117.922
-node:27 cost:119.544
-node:28 cost:145.402
-node:29 cost:135.402
-node:30 cost:125.402
-node:31 cost:126.14
-node:32 cost:129.544
-node:33 cost:147.763
-node:34 cost:139.544
-node:35 cost:135.01
-node:36 cost:133.779
-node:37 cost:135.402
-node:38 cost:139.544
-node:39 cost:211.932
-
-Time of calculation:3.438.sec
-*/
