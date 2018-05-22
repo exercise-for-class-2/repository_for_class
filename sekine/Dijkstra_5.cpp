@@ -62,6 +62,8 @@ struct Stack{
 
 //map[X][Y]に地図を保存する
 void input_map(std::string file, int map[][Y], int x, int y);
+//仮想壁を作る
+void change_map(int map[][Y], int map_buffer[][Y]);
 //x*x + y*yを返す
 double calc_distance(double x, double y);
 //node間の距離をnode[]に代入
@@ -73,7 +75,7 @@ void search_node(Node node[], int s);
 //探索済みノードから確定ノードを探す
 int  search_confirm_node(Node node[], int k, int s);
 //色々std::coutしてくれます
-void print_array(Node node[], int s, std::vector<int>& d);
+void print_array(Node node[], int s);
 //node.datの各ノードとその向こう先を書き込む関数 file = node2.dat
 void make_node(std::string file, int map[][Y], Node node[], int n);
 //file = "xy_edges.dat"から, ノードの個数を返す
@@ -84,16 +86,20 @@ int gnuplot_spc(std::string ofile);
 bool check_wall(Node node[], int map[][Y], int i_s, int i_g);
 //check_wall()内で使う関数
 bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y);
+//dijkstra経路を図示するためのファイル書き込み
+void make_dijkstra(std::string file, Node node[], int n);
 
 
 int main(){
 
   clock_t start = clock();
 
-  std::string file1 = "map2.dat";        //記入済み
+  std::string file1 = "map2.dat";      //記入済み
+  //std::string file1 = "map2_buffer.dat"; //記入済み
   std::string file2 = "node2.dat";       //未記入
   std::string file3 = "xy_all2.dat";     //記入済み
   std::string file4 = "xy_edges2.dat";   //記入済み
+  std::string file5 = "Dijkstra2.dat";   //未記入
 
   int n = number_of_node(file4);
   Node node[n];
@@ -101,18 +107,18 @@ int main(){
   int x=X, y=Y;
   int map[X][Y];
   input_map(file1, map, x, y);  //map[x][y]にfile1に保存された0,1の地図を代入していく
-
+  int map_buffer[X][Y];
+  change_map(map, map_buffer);
+  
   Node_in(node, file4);              //nodeの(x, y)を代入
-  make_node(file2, map, node, n);    //node.datに記入, node[].edges_toに代入
+  make_node(file2, map_buffer, node, n);    //node.datに記入, node[].edges_toに代入
 
   input_edges_cost(node, n);    //edges_costを計算
   search_node(node, n);         //各ノードまでのコストを代入
 
-  std::vector<int> d;          //最短経路を保存していく
-  d.push_back(0);              //スタートノードをpush_back ここからゴールまでの最短経路をpush_backしていく
-  std::vector<int> d_2;        //最短経路以外のたどったノードを保存していく
+  make_dijkstra(file5, node, n);
 
-  print_array(node, n, d);     //いろいろ出力
+  print_array(node, n);     //いろいろ出力
 
   gnuplot_spc(file3);          //地図を保存
   gnuplot_spc(file4);          //端点を保存
@@ -141,6 +147,64 @@ void input_map(std::string file, int map[][Y], int x, int y){
     }
     map[S_X][S_Y] = 1;
     map[G_X][G_Y] = 1;
+}
+
+
+void change_map(int map[][Y], int map_buffer[][Y]){
+  for(int i=1; i<X-1; i++){
+    for(int j=1; j<Y-1; j++){
+      if(map[i][j] == 1){
+        if((map[i][j+1]==1 && map[i-1][j]==1) ||   
+           (map[i-1][j]==1 && map[i][j-1]==1) ||
+           (map[i][j-1]==1 && map[i+1][j]==1) ||
+           (map[i+1][j]==1 && map[i][j+1])){
+              map_buffer[i-1][j-1]=1; map_buffer[i-1][j]=1; map_buffer[i-1][j+1]=1;
+              map_buffer[i  ][j-1]=1; map_buffer[i  ][j]=1; map_buffer[i  ][j+1]=1;
+              map_buffer[i+1][j-1]=1; map_buffer[i+1][j]=1; map_buffer[i+1][j+1]=1;
+        }
+        else if(map[i][j-1] == 1 && map[i][j+1] == 0){
+          map_buffer[i][j-1] = 1;
+        }
+        else if(map[i][j-1] == 0 && map[i][j+1] == 1){
+          map_buffer[i][j+1] = 1;
+        }
+        else{
+          map_buffer[i][j-1] = 1;
+          map_buffer[i][j+1] = 1;
+        }
+      }
+    }
+  }
+  for(int i=1; i<X-1; i++){
+    for(int j=1; j<Y-1; j++){
+      if(map[j][i] == 1){
+        if((map[j][i+1]==1 && map[j-1][i]==1) ||   
+           (map[j-1][i]==1 && map[j][i-1]==1) ||
+           (map[j][i-1]==1 && map[j+1][i]==1) ||
+           (map[i+1][j]==1 && map[i][j+1])){
+              map_buffer[j-1][i-1]=1; map_buffer[j-1][i]=1; map_buffer[j-1][i+1]=1;
+              map_buffer[j  ][i-1]=1; map_buffer[j  ][i]=1; map_buffer[j  ][i+1]=1;
+              map_buffer[j+1][i-1]=1; map_buffer[j+1][i]=1; map_buffer[j+1][i+1]=1;
+        }
+        else if(map[j-1][i] == 1 && map[j+1][i] == 0){
+          map_buffer[j-1][i] = 1;
+        }
+        else if(map[j-1][i] == 0 && map[j+1][i] == 1){
+          map_buffer[j+1][i] = 1;
+        }
+        else{
+          map_buffer[j-1][i] = 1;
+          map_buffer[j+1][i] = 1;
+        }
+      }
+    }
+  }
+  for(int i=0; i<X; i++){
+    map_buffer[i][0] = 1;
+    map_buffer[0][i] = 1;
+    map_buffer[100][i] = 1;
+    map_buffer[i][100] = 1;
+  }
 }
 
 double calc_distance(double x, double y){
@@ -231,46 +295,7 @@ int search_confirm_node(Node node[], int k, int s){
   return i;
 }
 
-void shortest_path(std::vector<int>& d, std::vector<int>& d_2, Node node[], int goal){
-  int i = 0;
-  int j = 0;
-  int flag = 1;
-  while(1){
-    if(flag == 2){
-      int s = d_2.size();
-      for(int k=0; k<s; k++){
-		    if(node[i].edges_to[j] == d_2[k]){  //無限ループを回避するためのif文
-	  		  j += 1;
-		    }
-      }
-    }
-    flag = 1;
-    int n = node[i].edges_to.size();
-    while(j<n){
-      if(node[i].cost < node[node[i].edges_to[j]].cost && (node[i].cost + node[i].edges_cost[j]) == node[node[i].edges_to[j]].cost){
-		    d.push_back(node[i].edges_to[j]);
-		    i = node[i].edges_to[j];     //iを次のノードにする
-		    flag = 0;
-      }
-      if(flag==0){
-		    break;
-      }
-      j += 1;
-    }
-    if(flag==1){	        	//現在ノードから次へ進めないとき
-      d_2.push_back(i);	  	//ノードiをkに保存
-      i = d[d.size()-2];    //ノードを一つ前に戻す		
-      d.pop_back();	        //最後のノードを削除
-      flag = 2;
-    }
-    if(i==goal){		       //iがゴールに到着したら
-      break;		           //終了
-    } 
-    j = 0;
-  }
-}
-
-void print_array(Node node[], int s, std::vector<int>& d){
+void print_array(Node node[], int s){
   //各ノードの座標を表示
   std::cout << "[coodinate of nodes]\n";
   for(int i=0; i<s; i++){
@@ -372,17 +397,21 @@ int gnuplot_spc(std::string ofile){
     FILE *gp; if((gp = _popen(GNPLT, "w")) == NULL) { printf("ERR\n"); exit(1); }
     fprintf(gp, "set size square\nset colorsequence classic\n");
     fprintf(gp, "set style l 1 lt 1 lc 1 lw 1 pt 5 ps 1\n");
+    fprintf(gp, "set style l 2 lt 1 lc 3 lw 1 pt 5 ps 1\n");
     fprintf(gp, "set ticscale 0\nset xtics 10\nset ytics 10\n");
     fprintf(gp, "set xrange[0:100]\nset yrange[0:100]\n");
     if(ofile == "xy_all2.dat"){
-        fprintf(gp, "set terminal png\n");
-        fprintf(gp, "set output 'xy_all2.png'\n");
-        fprintf(gp, "plot 'xy_all2.dat' linestyle 1\n");
+      fprintf(gp, "set terminal png\n");
+      //fprintf(gp, "set multiplot\n");
+      //fprintf(gp, "set output 'xy_all2.png'\n");
+      fprintf(gp, "plot 'xy_all2.dat' linestyle 1\n");
+      fprintf(gp, "set output 'xy_all2.png'\n");
+      fprintf(gp, "replot 'Dijkstra2.dat' with line linestyle 2\n");
     }
     else if(ofile == "xy_edges2.dat"){
-        fprintf(gp, "set terminal png\n");
-        fprintf(gp, "set output 'xy_edges2.png'\n");
-        fprintf(gp, "plot 'xy_edges2.dat' linestyle 1\n");
+      fprintf(gp, "set terminal png\n");
+      fprintf(gp, "set output 'xy_edges2.png'\n");
+      fprintf(gp, "plot 'xy_edges2.dat' linestyle 1\n");
     }
     //system("pause"); fprintf(gp, "exit\n");
     return _pclose(gp);
@@ -556,4 +585,15 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
       return true;
     }
   }
+}
+
+void make_dijkstra(std::string file, Node node[], int n){
+  std::ofstream ofp(file.c_str());
+  int i = n-1;
+  while(i != 0){
+    ofp << node[i].x << " " << node[i].y << '\n';
+    i = node[i].path;
+  }
+  ofp << node[i].x << " " << node[i].y << '\n';
+  ofp.close();
 }
