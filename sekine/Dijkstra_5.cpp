@@ -345,7 +345,8 @@ void print_array(Node node[], int s){
   int dij[s];
   int i_d = 0;
   int k = s-1;
-  //dij[i_d] = k;
+  dij[i_d] = k;
+  i_d += 1;
   while(k != 0){
     dij[i_d] = node[k].path;
     i_d += 1;

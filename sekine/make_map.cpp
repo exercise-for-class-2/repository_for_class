@@ -80,7 +80,7 @@ int spc_ex2(double x, double y){
         if(y < 80 ) return (( x==10 || x==40 || x==90) ? 1 : 0);
         if(y == 80) return (( x==10 || (x>=20&&x<=30) || x==40 || (x>=50&&x<=90)) ? 1 : 0);
         if(y < 90 ) return (( x==10 || x==20 || x==30 || x==50 || x==90) ? 1 :0);
-        if(y == 90) return (( x==10 || x==20 || x>=30) ? 1 : 0);
+        if(y == 90) return (( x==10 || x==20 || (x>=30&&x<=90)) ? 1 : 0);
         if(y < 100) return 0;
         if(y ==100) return 1;
         if(y > 100) return 1;
