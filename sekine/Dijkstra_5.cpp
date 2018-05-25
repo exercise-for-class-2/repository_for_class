@@ -26,7 +26,7 @@ struct Node{                       //このノードから伸びるエッジの�
   double x;                        //x座標
   double y;                        //y座標
   int path = -1;                   //このノードに入ってくるノード
-  double cost = -1;                //このノードへの現時点で判明している最小コスト
+  double cost = MAX_COST;          //このノードへの現時点で判明している最小コスト
   bool flag = false;               //探索済みか否か
   bool done = false;               //確定ノードか否か               
 };
@@ -73,7 +73,7 @@ void Node_in(struct Node node[], std::string file);
 //各ノードまでのコストを計算
 void search_node(Node node[], int s);
 //探索済みノードから確定ノードを探す
-int  search_confirm_node(Node node[], int k, int s);
+int  search_confirm_node(Node node[], int s, int *cnt);
 //色々std::coutしてくれます
 void print_array(Node node[], int s);
 //node.datの各ノードとその向こう先を書き込む関数 file = node2.dat
@@ -101,7 +101,8 @@ int main(){
   std::string file4 = "xy_edges2.dat";   //記入済み
   std::string file5 = "Dijkstra2.dat";   //未記入
 
-  int n = number_of_node(file4);
+  int n;
+  n = number_of_node(file4);
   Node node[n];
 
   int x=X, y=Y;
@@ -248,22 +249,21 @@ void search_node(Node node[], int s){
   node[i].done = true;    //確定ノード
   cnt += 1;
   while(j<n){
-	  if(node[node[i].edges_to[j]].cost == -1){
+	  if(node[node[i].edges_to[j]].flag == false){
 	    node[node[i].edges_to[j]].cost = node[i].edges_cost[j];
       node[node[i].edges_to[j]].flag = true;
       node[node[i].edges_to[j]].path = i;
 	    j += 1;
 	  }
   }
-  int k = i;
-  i = search_confirm_node(node, k, s);   //確定ノードを探す
+  i = search_confirm_node(node, s, &cnt);   //確定ノードを探す
   node[i].done = true;                   //node iを確定ノードにする
   cnt += 1;
   while(cnt < s){   //goalが確定ノードになるまで繰り返す
     j = 0;
     n = node[i].edges_to.size();	//node[i].edges_toの要素数
     while(j<n){
-      if(node[node[i].edges_to[j]].cost == -1){
+      if(node[node[i].edges_to[j]].flag == false){
         node[node[i].edges_to[j]].cost = node[i].cost + node[i].edges_cost[j];
         node[node[i].edges_to[j]].flag = true;
         node[node[i].edges_to[j]].path = i;
@@ -274,17 +274,18 @@ void search_node(Node node[], int s){
       }
       j += 1;
     }
-    k = i;
-    i = search_confirm_node(node, k, s);   //確定ノードを探す
-    node[i].done = true;                   //node iを確定ノードにする
-    cnt += 1;
+    i = search_confirm_node(node, s, &cnt);   //確定ノードを探す
+    if(i != -1){
+      node[i].done = true;                   //node iを確定ノードにする
+      cnt += 1;
+    }
   }
 }
 
-int search_confirm_node(Node node[], int k, int s){
-  int i, j;
+int search_confirm_node(Node node[], int s, int *cnt){
+  int i = MAX_COST, j;
   int min = MAX_COST;
-  for(int j=0; j<s; j++){
+  for(j=0; j<s; j++){
     if((node[j].flag == true) && (node[j].done == false)){
       if(node[j].cost < min){
         min = node[j].cost;
@@ -292,17 +293,21 @@ int search_confirm_node(Node node[], int k, int s){
       }
     }
   }
+  if(i == MAX_COST){
+    (*cnt) = s;
+    return -1;
+  }
   return i;
 }
 
 void print_array(Node node[], int s){
   //各ノードの座標を表示
-  std::cout << "[coodinate of nodes]\n";
+ /* std::cout << "[coodinate of nodes]\n";
   for(int i=0; i<s; i++){
     std::cout << i << "(" << node[i].x << "," << node[i].y << ")\n";
   }
   std::cout << '\n';
-
+*/
   //各ノード間の距離を表示
   int label[s];
   for(int i=0; i<s; i++){
@@ -323,7 +328,8 @@ void print_array(Node node[], int s){
   //各ノードまでのコストを表示
   std::cout << "[cost of nodes]\n";
   for(int i=0; i<s; i++){
-    std::cout << "node:" << i << " cost:" << node[i].cost << '\n';
+    std::cout  << "node:" << i << "(" << node[i].x << "," << node[i].y << ") ";
+    std::cout<< " cost:" << node[i].cost << '\n';
   }
   std::cout << '\n';
 
@@ -339,9 +345,10 @@ void print_array(Node node[], int s){
   int dij[s];
   int i_d = 0;
   int k = s-1;
-  dij[i_d++] = k;
+  //dij[i_d] = k;
   while(k != 0){
-    dij[i_d++] = node[k].path;
+    dij[i_d] = node[k].path;
+    i_d += 1;
     k = node[k].path;
   }
   for(int i=i_d-1; i>=0; i--){
@@ -402,11 +409,9 @@ int gnuplot_spc(std::string ofile){
     fprintf(gp, "set xrange[0:100]\nset yrange[0:100]\n");
     if(ofile == "xy_all2.dat"){
       fprintf(gp, "set terminal png\n");
-      //fprintf(gp, "set multiplot\n");
-      //fprintf(gp, "set output 'xy_all2.png'\n");
       fprintf(gp, "plot 'xy_all2.dat' linestyle 1\n");
       fprintf(gp, "set output 'xy_all2.png'\n");
-      fprintf(gp, "replot 'Dijkstra2.dat' with line linestyle 2\n");
+      fprintf(gp, "replot 'Dijkstra2.dat' with lp linestyle 2\n");
     }
     else if(ofile == "xy_edges2.dat"){
       fprintf(gp, "set terminal png\n");
@@ -462,14 +467,7 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
     for(j=1; j<=std::abs(d_y); j++){
       j_y = j * sign_y;
       if(flag == 0){
-          if(map[s_x][s_y+j_y] == 0)  flag = 1;
-        }
-      if(flag == 1){
-        if(map[s_x][s_y+j_y] == 1)  flag = 2;
-      }
-      if(flag == 2){
-        if(map[s_x][s_y+j_y] == 0)  flag = 3;
-        if(map[s_x-1][s_y+j_y]==1 && map[s_x+1][s_y+j_y]==1)  flag = 3;
+        if(map[s_x+1][s_y+j_y]==1 && map[s_x-1][s_y+j_y]==1)  flag = 3;
       }
       if(flag == 3){
         return false;
@@ -482,14 +480,7 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
     for(i=1; i<=std::abs(d_x); i++){
       i_x = i * sign_x;
       if(flag == 0){
-          if(map[s_x+i_x][s_y] == 0)  flag = 1;
-        }
-      if(flag == 1){
-        if(map[s_x+i_x][s_y] == 1)  flag = 2;
-      }
-      if(flag == 2){
-        if(map[s_x+i_x][s_y] == 0)  flag = 3;
-        if(map[s_x+i_x][s_y-1]==1 && map[s_x+i_x][s_y+1]==1)  flag = 3;
+        if(map[s_x+i_x][s_y+1]==1 && map[s_x+i_x][s_y-1]==1)  flag = 3;
       }
       if(flag == 3){
         return false;
@@ -499,21 +490,23 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
   }
   else{
     if(std::abs(slope2) <= std::abs(slope1)){
-      int i, j = 1;
-      for(i=1; i<=std::abs(d_x); i++){
+      int i = 1, j = 1;
+      int flag_ij;
+      for(i=1; i<std::abs(d_x); i++){
         int cnt = 0;
         i_x = i * sign_x;
         while(cnt != std::abs(slope1)){
-          int flag_ij = 1;
+          flag_ij = 1;
           j_y = j * sign_y;
           if(flag_ij == 1 && flag == 0){
-            if(map[s_x+i_x][s_y+j_y] == 0){ flag_ij = 0; flag = 1;}
+            if(map[s_x+i_x][s_y+j_y] == 1){ flag_ij = 0; flag = 3;}
+            else if(map[s_x+i_x][s_y+j_y] == 0){ flag_ij = 0; flag = 1;}
           }
           if(flag_ij == 1 && flag == 1){
             if(map[s_x+i_x][s_y+j_y] == 1){ flag_ij = 0; flag = 2;}
           }
           if(flag_ij == 1 && flag == 2){
-            if(map[s_x+i_x][s_y+j_y] == 0)  flag = 3;
+            flag = 3;
           }
           if(flag == 3){
             return false;
@@ -522,41 +515,41 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
           j += 1;
         }
       }
+      j_y = j * sign_y;
+      i_x = i * sign_x;
       //ここまでくれば現在地のx座標は目的地のx座標と一致する(はず)
       while((s_y+j_y) != g_y){
-        j_y = j * sign_y;
+        flag_ij = 1;
+        flag = 0;
         if(flag == 0){
-          if(map[s_x+i_x][s_y+j_y] == 0)  flag = 1;
-        }
-        if(flag == 1){
-          if(map[s_x+i_x][s_y+j_y] == 1)  flag = 2;
-        }
-        if(flag == 2){
-          if(map[s_x+i_x][s_y+j_y] == 0)  flag = 3;
+          if(map[s_x+i_x+1][s_y+j_y]==1 && map[s_x+i_x-1][s_y+j_y]==1){flag = 3;}
         }
         if(flag == 3){
           return false;
         }
         j += 1;
+        j_y = j * sign_y;
       }
       return true;
     }
     else{
-      int i = 1, j;
-      for(j=1; j<=std::abs(d_y); j++){
+      int i = 1, j = 1;
+      int flag_ij;
+      for(j=1; j<std::abs(d_y); j++){
         int cnt = 0;
         j_y = j * sign_y;
         while(cnt != std::abs(slope2)){
-          int flag_ij = 1;
+          flag_ij = 1;
           i_x = i * sign_x;
           if(flag_ij == 1 && flag == 0){
-            if(map[s_x+i_x][s_y+j_y] == 0){ flag_ij = 0; flag = 1;}
+            if(map[s_x+i_x][s_y+j_y] == 1){ flag_ij = 0; flag = 3;}
+            else if(map[s_x+i_x][s_y+j_y] == 0){ flag_ij = 0; flag = 1;}
           }
           if(flag_ij == 1 && flag == 1){
             if(map[s_x+i_x][s_y+j_y] == 1){ flag_ij = 0; flag = 2;}
           }
           if(flag_ij == 1 && flag == 2){
-            if(map[s_x+i_x][s_y+j_y] == 0)  flag = 3;
+            flag = 3;
           }
           if(flag == 3){
             return false;
@@ -565,24 +558,22 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
           i += 1;
         }
       }
+      i_x = i * sign_x;
+      j_y = j * sign_y;
       //ここまでくれば現在地のy座標は目的地のy座標と一致する(はず)
       while((s_x+i_x) != g_x){
-        i_x = i * sign_x;
+        flag_ij = 1;
+        flag = 0;
         if(flag == 0){
-          if(map[s_x+i_x][s_y+j_y] == 0)  flag = 1;
-        }
-        if(flag == 1){
-          if(map[s_x+i_x][s_y+j_y] == 1)  flag = 2;
-        }
-        if(flag == 2){
-          if(map[s_x+i_x][s_y+j_y] == 0)  flag = 3;
+          if(map[s_x+i_x][s_y+j_y+1]==1 && map[s_x+i_x][s_y+j_y-1]==1){flag = 3;}
         }
         if(flag == 3){
           return false;
         }
         i += 1;
+        i_x = i * sign_x;
       }
-      return true;
+    return true;
     }
   }
 }

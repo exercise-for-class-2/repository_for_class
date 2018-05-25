@@ -21,24 +21,28 @@ void input_map(std::string file, int map[][Y], int x, int y);
 //gnuplotで地図を描画するためのfileを作成する
 void output_dat(std::string ofile, int map[][Y], int x, int y);
 //仮想壁を作る
-void change_map(int map[][Y], int map_copy[][Y]);
+void change_map(int map[][Y], int map_buffer[][Y]);
+//buffer考慮のマップをファイルに書き込む
+void output_map(int map_buffer[][Y], std::string file2);
 
 int main() {
 
     int x = X, y = Y;
     std::string file1 = "map2.dat";
+    std::string file2 = "map2_buffer.dat";
 
     int map[X][Y];
     input_map(file1, map, x, y);          //map[x][y]にfile1の内容を代入していく
-    //int map_copy[X][Y];
-    //change_map(map, map_copy);
+    int map_buffer[X][Y];
+    change_map(map, map_buffer);
+    output_map(map_buffer, file2);
 
     std::string ofile1 = "xy_all2.dat";   //全体を描画するためのfile
     std::string ofile2 = "xy_edges2.dat"; //端点を描画するためのfile
-    output_dat(ofile1, map, x, y);        //障害物を記録
-    output_dat(ofile2, map, x, y);        //端点を記録
+    output_dat(ofile1, map_buffer, x, y);        //障害物を記録
+    output_dat(ofile2, map_buffer, x, y);        //端点を記録
 
-    std::cout << "Please check 'xy_all2.dat' & 'xy_edges2.dat'\n";
+    std::cout << "Please check 'xy_all2.dat' & 'xy_edges2.dat' & 'map2_baffer.dat'\n";
     std::cout << "Please compile 'Dijkstra_5.cpp'\n";
 
     return 0;
@@ -54,6 +58,14 @@ bool check(int i,int j,int x,int y,int map[][Y]){
     if(map[i][j-1]==1 && map[i][j+1]==1){
         return false;
     }
+    if(i!=0 || i!=x-1 || j!=0 || j!=y-1){
+        if( (map[i][j+1]==0 && map[i-1][j]==0 && map[i][j-1]==1 && map[i+1][j]==1) ||  
+            (map[i][j+1]==1 && map[i-1][j]==0 && map[i][j-1]==0 && map[i+1][j]==1) ||   
+            (map[i][j+1]==1 && map[i-1][j]==1 && map[i][j-1]==0 && map[i+1][j]==0) ||  
+            (map[i][j+1]==0 && map[i-1][j]==1 && map[i][j-1]==1 && map[i+1][j]==0)){ 
+                return true;
+        }
+    }      
     if(map[i][j]==1){
         return true;
     }
@@ -174,11 +186,71 @@ void output_dat(std::string ofile, int map[][Y], int x, int y){
         ofp.close();
     }
 }
-/*
-void change_map(int map[][Y], int map_copy[][Y]){
-    for(int i=0; i<X; i++){
-        for(int j=0; j<Y; j++){
 
+void change_map(int map[][Y], int map_buffer[][Y]){
+    for(int i=1; i<X-1; i++){
+        for(int j=1; j<Y-1; j++){
+            if(map[i][j] == 1){
+                if((map[i][j+1]==1 && map[i-1][j]==1) ||   
+                   (map[i-1][j]==1 && map[i][j-1]==1) ||
+                   (map[i][j-1]==1 && map[i+1][j]==1) ||
+                   (map[i+1][j]==1 && map[i][j+1])){
+                       map_buffer[i-1][j-1]=1; map_buffer[i-1][j]=1; map_buffer[i-1][j+1]=1;
+                       map_buffer[i  ][j-1]=1; map_buffer[i  ][j]=1; map_buffer[i  ][j+1]=1;
+                       map_buffer[i+1][j-1]=1; map_buffer[i+1][j]=1; map_buffer[i+1][j+1]=1;
+                }
+                else if(map[i][j-1] == 1 && map[i][j+1] == 0){
+                    map_buffer[i][j-1] = 1;
+                }
+                else if(map[i][j-1] == 0 && map[i][j+1] == 1){
+                    map_buffer[i][j+1] = 1;
+                }
+                else{
+                    map_buffer[i][j-1] = 1;
+                    map_buffer[i][j+1] = 1;
+                }
+            }
         }
     }
-}*/
+    for(int i=1; i<X-1; i++){
+        for(int j=1; j<Y-1; j++){
+            if(map[j][i] == 1){
+                if((map[j][i+1]==1 && map[j-1][i]==1) ||   
+                   (map[j-1][i]==1 && map[j][i-1]==1) ||
+                   (map[j][i-1]==1 && map[j+1][i]==1) ||
+                   (map[i+1][j]==1 && map[i][j+1])){
+                       map_buffer[j-1][i-1]=1; map_buffer[j-1][i]=1; map_buffer[j-1][i+1]=1;
+                       map_buffer[j  ][i-1]=1; map_buffer[j  ][i]=1; map_buffer[j  ][i+1]=1;
+                       map_buffer[j+1][i-1]=1; map_buffer[j+1][i]=1; map_buffer[j+1][i+1]=1;
+                }
+                else if(map[j-1][i] == 1 && map[j+1][i] == 0){
+                    map_buffer[j-1][i] = 1;
+                }
+                else if(map[j-1][i] == 0 && map[j+1][i] == 1){
+                    map_buffer[j+1][i] = 1;
+                }
+                else{
+                    map_buffer[j-1][i] = 1;
+                    map_buffer[j+1][i] = 1;
+                }
+            }
+        }
+    }
+    for(int i=0; i<X; i++){
+        map_buffer[i][0] = 1;
+        map_buffer[0][i] = 1;
+        map_buffer[100][i] = 1;
+        map_buffer[i][100] = 1;
+    }
+}
+
+void output_map(int map_buffer[][Y], std::string ofile){
+    std::ofstream ofp(ofile.c_str());
+    for(int i=0; i<X; i++){
+        for(int j=0; j<Y; j++){
+            ofp << map_buffer[i][j] << " ";
+        }
+        ofp << '\n';
+    }
+    ofp.close();
+}
