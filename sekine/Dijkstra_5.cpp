@@ -31,35 +31,6 @@ struct Node{                       //このノードから伸びるエッジの�
   bool done = false;               //確定ノードか否か               
 };
 
-struct Stack{
-    double s[MAX];
-    int top;
-
-    void initialize(){
-      top = 0;
-    }
-    bool isEmpty(){
-      return (top == 0);
-    }
-    bool isFull(){
-      return (top == MAX-1);
-    }
-    void push(double x){
-      if(isFull()){
-          std::cout << "stack overflow\n";
-          exit(0);
-      }
-      s[top++] = x;
-    }
-    double pop(){
-      if(isEmpty()){
-          std::cout << "stack underflow\n";
-          exit(0);
-      }
-      return s[--top];
-    }
-};
-
 //map[X][Y]に地図を保存する
 void input_map(std::string file, int map[][Y], int x, int y);
 //仮想壁を作る
@@ -437,7 +408,7 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
   int d_x = g_x - s_x;       //端点同士のx座標の差difference_x
   int d_y = g_y - s_y;       //端点同士のy座標の差difference_y
   int slope1, slope2;
-  int flag_d = 0;
+  int flag_d = 0
   if(d_x == 0)  flag_d = 1;
   else          slope1 = d_y / d_x;  //2点間の傾きd_y / d_x
   if(d_y == 0)  flag_d = 2;
@@ -468,7 +439,7 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
     for(j=1; j<=std::abs(d_y); j++){
       j_y = j * sign_y;
       if(flag == 0){
-        if(map[s_x+1][s_y+j_y]==1 && map[s_x-1][s_y+j_y]==1)  flag = 3;
+        if(map[s_x+1][s_y+j_y]!=0 && map[s_x-1][s_y+j_y]!=0)  flag = 3;
       }
       if(flag == 3){
         return false;
@@ -481,7 +452,7 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
     for(i=1; i<=std::abs(d_x); i++){
       i_x = i * sign_x;
       if(flag == 0){
-        if(map[s_x+i_x][s_y+1]==1 && map[s_x+i_x][s_y-1]==1)  flag = 3;
+        if(map[s_x+i_x][s_y+1]!=0 && map[s_x+i_x][s_y-1]!=0)  flag = 3;
       }
       if(flag == 3){
         return false;
@@ -499,12 +470,12 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
         while(cnt != std::abs(slope1)){
           flag_ij = 1;
           j_y = j * sign_y;
-          if(flag_ij == 1 && flag == 0){
-            if(map[s_x+i_x][s_y+j_y] == 1){ flag_ij = 0; flag = 3;}
+          if(flag_ij ==1 && flag == 0){
+            if(map[s_x+i_x][s_y+j_y] != 0){ flag_ij = 0; flag = 3;}
             else if(map[s_x+i_x][s_y+j_y] == 0){ flag_ij = 0; flag = 1;}
           }
           if(flag_ij == 1 && flag == 1){
-            if(map[s_x+i_x][s_y+j_y] == 1){ flag_ij = 0; flag = 2;}
+            if(map[s_x+i_x][s_y+j_y] != 0){ flag_ij = 0; flag = 2;}
           }
           if(flag_ij == 1 && flag == 2){
             flag = 3;
@@ -523,7 +494,7 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
         flag_ij = 1;
         flag = 0;
         if(flag == 0){
-          if(map[s_x+i_x+1][s_y+j_y]==1 && map[s_x+i_x-1][s_y+j_y]==1){flag = 3;}
+          if(map[s_x+i_x+1][s_y+j_y] != 0 && map[s_x+i_x-1][s_y+j_y] != 0){flag = 3;}
         }
         if(flag == 3){
           return false;
@@ -543,11 +514,11 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
           flag_ij = 1;
           i_x = i * sign_x;
           if(flag_ij == 1 && flag == 0){
-            if(map[s_x+i_x][s_y+j_y] == 1){ flag_ij = 0; flag = 3;}
+            if(map[s_x+i_x][s_y+j_y] != 0){ flag_ij = 0; flag = 3;}
             else if(map[s_x+i_x][s_y+j_y] == 0){ flag_ij = 0; flag = 1;}
           }
           if(flag_ij == 1 && flag == 1){
-            if(map[s_x+i_x][s_y+j_y] == 1){ flag_ij = 0; flag = 2;}
+            if(map[s_x+i_x][s_y+j_y] != 0){ flag_ij = 0; flag = 2;}
           }
           if(flag_ij == 1 && flag == 2){
             flag = 3;
@@ -566,7 +537,7 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
         flag_ij = 1;
         flag = 0;
         if(flag == 0){
-          if(map[s_x+i_x][s_y+j_y+1]==1 && map[s_x+i_x][s_y+j_y-1]==1){flag = 3;}
+          if(map[s_x+i_x][s_y+j_y+1] != 0 && map[s_x+i_x][s_y+j_y-1] != 0){flag = 3;}
         }
         if(flag == 3){
           return false;
