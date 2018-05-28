@@ -1,39 +1,39 @@
 struct drone{
-    int x,y,z;        //ƒhƒ[ƒ“‚ÌŒ»Ý’n‚ÌÀ•W
+    int x,y,z;        //ãƒ‰ãƒ­ãƒ¼ãƒ³ã®ç¾åœ¨åœ°ã®åº§æ¨™
 	int flag=0;
-    bool fil[5][5];      //ƒŒ[ƒU[ƒŒƒ“ƒWƒtƒ@ƒCƒ“ƒ_[‚æ‚è“üŽè‚µ‚½î•ñ‚ðŠi”[ 
-    void avoidance();     //‹Ù‹}‰ñ”ð—pƒvƒƒOƒ‰ƒ€
-    void extract();       //’n}‚©‚ç’[“_‚ð’Šo‚·‚éŠÖ”
-    void Dijkstra();      //Dijkstra‚É‚æ‚éŒo˜HŒvŽZ‚ð‚·‚éŠÖ”
-    void get_map();     //ƒ}ƒbƒvî•ñ‚ÌŽæ“¾
-    void update_fil();  //fil‚ðXV‚·‚é
-    Node node[];   //ƒm[ƒh
+    bool fil[5][5];      //ãƒ¬ãƒ¼ã‚¶ãƒ¼ãƒ¬ãƒ³ã‚¸ãƒ•ã‚¡ã‚¤ãƒ³ãƒ€ãƒ¼ã‚ˆã‚Šå…¥æ‰‹ã—ãŸæƒ…å ±ã‚’æ ¼ç´ 
+    void avoidance();     //ç·Šæ€¥å›žé¿ç”¨ãƒ—ãƒ­ã‚°ãƒ©ãƒ 
+    void extract();       //åœ°å›³ã‹ã‚‰ç«¯ç‚¹ã‚’æŠ½å‡ºã™ã‚‹é–¢æ•°
+    void Dijkstra();      //Dijkstraã«ã‚ˆã‚‹çµŒè·¯è¨ˆç®—ã‚’ã™ã‚‹é–¢æ•°
+    void get_map();     //ãƒžãƒƒãƒ—æƒ…å ±ã®å–å¾—
+    void update_fil();  //filã‚’æ›´æ–°ã™ã‚‹
+    Node node[];   //ãƒŽãƒ¼ãƒ‰
     private:
-        int map[][][];        //ƒ}ƒbƒvî•ñ‚ðŠi”[
+        int map[][][];        //ãƒžãƒƒãƒ—æƒ…å ±ã‚’æ ¼ç´
 
-}
+};
 
-//’[“_‚©‚ç’[“_‚Ü‚Åƒhƒ[ƒ“‚ÌŒ»Ý’n‚ðXV‚·‚é‚²‚Æ‚Éavoidance‚ðŒÄ‚Ño‚µ‚Â‚Âi‚Þ
-void dronego(drone D,int nextnode){ // D...ƒhƒ[ƒ“  nextnode...–Ú•W“_‚Æ‚È‚éƒm[ƒh‚Ì”Ô†
+//ç«¯ç‚¹ã‹ã‚‰ç«¯ç‚¹ã¾ã§ãƒ‰ãƒ­ãƒ¼ãƒ³ã®ç¾åœ¨åœ°ã‚’æ›´æ–°ã™ã‚‹ã”ã¨ã«avoidanceã‚’å‘¼ã³å‡ºã—ã¤ã¤é€²ã‚€
+void dronego(drone D,int nextnode){ // D...ãƒ‰ãƒ­ãƒ¼ãƒ³  nextnode...ç›®æ¨™ç‚¹ã¨ãªã‚‹ãƒŽãƒ¼ãƒ‰ã®ç•ªå·
 	
-	int movex,movey;  //Œ»Ý’n‚©‚ç’[“_‚Éi‚Þ‚½‚ß‚ÉˆÚ“®‚µ‚È‚«‚á‚¢‚¯‚È‚¢xÀ•W‚Ì”‚ÆyÀ•W‚Ì”
-	movex = D.node[nextnode].x - D.x;  // movex‚ðŽZo
-	movey = D.node[nextnode].y - D.y;  // movey‚ðŽZo
+	int movex,movey;  //ç¾åœ¨åœ°ã‹ã‚‰ç«¯ç‚¹ã«é€²ã‚€ãŸã‚ã«ç§»å‹•ã—ãªãã‚ƒã„ã‘ãªã„xåº§æ¨™ã®æ•°ã¨yåº§æ¨™ã®æ•°
+	movex = D.node[nextnode].x - D.x;  // movexã‚’ç®—å‡º
+	movey = D.node[nextnode].y - D.y;  // moveyã‚’ç®—å‡º
 	
-	double slope;  //¡‚¢‚é’[“_‚ÌÀ•W‚©‚çŽŸŒü‚©‚¤’[“_‚ÌÀ•W‚Ö‚ÌŒX‚«
-	slope=(double)(movex)/(double)(movey);  //slope‚ðŽZo
+	double slope;  //ä»Šã„ã‚‹ç«¯ç‚¹ã®åº§æ¨™ã‹ã‚‰æ¬¡å‘ã‹ã†ç«¯ç‚¹ã®åº§æ¨™ã¸ã®å‚¾ã
+	slope=(double)(movey)/(double)(movex);  //slopeã‚’ç®—å‡º
 	
-	int move[movex+movey];  //’[“_‚©‚ç’[“_‚Éi‚Þ‚½‚ß‚ÉxÀ•W‚ÆyÀ•W‚ð‚¢‚­‚Â‚¸‚Â,‚Ç‚Ì‡”Ô‚Å‘Œ¸‚³‚¹‚é‚Ì‚©‚ðŠi”[.y‚ª1‘‰Á‚·‚é‚Æ‚«(•ûŒü‚Å•\‚·‚Æ‘O)‚Í1,y‚ª1Œ¸­(Œã‚ë)‚ª2,x‚ª1‘‰Á(‰E)‚ª3,x‚ª1Œ¸­(¶)‚ª4‚Æ‚µ‚Ä‘Î‰ž
+	int move[movex+movey];  //ç«¯ç‚¹ã‹ã‚‰ç«¯ç‚¹ã«é€²ã‚€ãŸã‚ã«xåº§æ¨™ã¨yåº§æ¨™ã‚’ã„ãã¤ãšã¤,ã©ã®é †ç•ªã§å¢—æ¸›ã•ã›ã‚‹ã®ã‹ã‚’æ ¼ç´.yãŒ1å¢—åŠ ã™ã‚‹ã¨ã(æ–¹å‘ã§è¡¨ã™ã¨å‰)ã¯1,yãŒ1æ¸›å°‘(å¾Œã‚)ãŒ2,xãŒ1å¢—åŠ (å³)ãŒ3,xãŒ1æ¸›å°‘(å·¦)ãŒ4ã¨ã—ã¦å¯¾å¿œ
 	
 	/* 
-		move‚Ì—á:‰E‚É1,‘O‚É1‚Ã‚ÂÀ•W(0,0)‚©‚ç(5,5)‚Ü‚Åi‚Ý‚½‚¢‚Æ‚«
+		moveã®ä¾‹:å³ã«1,å‰ã«1ã¥ã¤åº§æ¨™(0,0)ã‹ã‚‰(5,5)ã¾ã§é€²ã¿ãŸã„ã¨ã
 		move[0]=3,move[1]=1,move[2]=3,move[3]=1,move[4]=3,move[5]=1,move[6]=3,move[7]=1,move[8]=3,move[9]=1;
 	*/
 	
-	// «move‚ÌŠi”[•û–@ˆÄ«
-	int ycount=0,count=0;  //ycount...y‚ª‘Œ¸‚µ‚½‰ñ”‚ðƒJƒEƒ“ƒgB  count...x‚Ü‚½‚Íy‚ª‘Œ¸‚µ‚½‰ñ”BÅI“I‚Émovex+movey‚É‚È‚é‚Í‚¸
-	for(int x=1;x<=fabs(movex);x++){  //xÀ•W‚ðˆê‰ñ‚Ã‚Â‘Œ¸A‚»‚Ì“x‚ÉyÀ•W‚à‘Œ¸‚³‚¹‚é‚©”»’è
-		//xÀ•W‚ð‘Œ¸
+	// â†“moveã®æ ¼ç´æ–¹æ³•æ¡ˆâ†“
+	int ycount=0,count=0;  //ycount...yãŒå¢—æ¸›ã—ãŸå›žæ•°ã‚’ã‚«ã‚¦ãƒ³ãƒˆã€‚  count...xã¾ãŸã¯yãŒå¢—æ¸›ã—ãŸå›žæ•°ã€‚æœ€çµ‚çš„ã«movex+moveyã«ãªã‚‹ã¯ãš
+	for(int x=1;x<=fabs(movex);x++){  //xåº§æ¨™ã‚’ä¸€å›žã¥ã¤å¢—æ¸›ã€ãã®åº¦ã«yåº§æ¨™ã‚‚å¢—æ¸›ã•ã›ã‚‹ã‹åˆ¤å®š
+		//xåº§æ¨™ã‚’å¢—æ¸›
 		if(movex>0){
 			move[count]=3;
 			count++;
@@ -41,8 +41,8 @@ void dronego(drone D,int nextnode){ // D...ƒhƒ[ƒ“  nextnode...–Ú•W“_‚Æ‚È‚éƒm[
 			move[count]=4;
 			count++;
 		}
-		//yÀ•W‚ð‘Œ¸
-		while(slope*x>=ycount){  //Šex‚É‘Î‚µ‚Äslope*x‚ª1‚ð’´‚¦‚½ƒ^ƒCƒ~ƒ“ƒO‚Åy‚ð1‰ñ‘Œ¸A2‚ð’´‚¦‚½ƒ^ƒCƒ~ƒ“ƒO‚Åy‚ð‚à‚¤1‰ñ‘Œ¸‚³‚¹‚½‚¢B3‚ð’´‚¦‚½‚ç‚³‚ç‚É‚à‚¤ˆê‰ñy‚ð...(—ª)
+		//yåº§æ¨™ã‚’å¢—æ¸›
+		while(slope*x>=ycount){  //å„xã«å¯¾ã—ã¦slope*xãŒ1ã‚’è¶…ãˆãŸã‚¿ã‚¤ãƒŸãƒ³ã‚°ã§yã‚’1å›žå¢—æ¸›ã€2ã‚’è¶…ãˆãŸã‚¿ã‚¤ãƒŸãƒ³ã‚°ã§yã‚’ã‚‚ã†1å›žå¢—æ¸›ã•ã›ãŸã„ã€‚3ã‚’è¶…ãˆãŸã‚‰ã•ã‚‰ã«ã‚‚ã†ä¸€å›žyã‚’...(ç•¥)
 			if(movey>0){
 				move[count]=1;
 				count++;
@@ -50,34 +50,34 @@ void dronego(drone D,int nextnode){ // D...ƒhƒ[ƒ“  nextnode...–Ú•W“_‚Æ‚È‚éƒm[
 				move[count]=2;
 				count++;
 			}
-			ycount++;  //y‚ª‘Œ¸‚µ‚½‰ñ”‚ð‘‚â‚·
+			ycount++;  //yãŒå¢—æ¸›ã—ãŸå›žæ•°ã‚’å¢—ã‚„ã™
 		}
 	}
 	
-	//ƒhƒ[ƒ“‚ÌˆÊ’u‚ðXV‚µ‚Ä‚¢‚­
+	//ãƒ‰ãƒ­ãƒ¼ãƒ³ã®ä½ç½®ã‚’æ›´æ–°ã—ã¦ã„ã
 	for(int i=0;i<movex+movey;i++){
 		
-		avoidance(D);  //i‚à‚¤‚Æ‚µ‚Ä‚éÀ•W‚ªáŠQ•¨‚Å‚Ó‚³‚ª‚Á‚Ä‚½‚çáŠQ•¨‰ñ”ðBáŠQ•¨‰ñ”ð‚ª‹N‚±‚Á‚½ê‡D.flag==1‚É‚È‚Á‚Ä‚é
+		avoidance(D);  //é€²ã‚‚ã†ã¨ã—ã¦ã‚‹åº§æ¨™ãŒéšœå®³ç‰©ã§ãµã•ãŒã£ã¦ãŸã‚‰éšœå®³ç‰©å›žé¿ã€‚éšœå®³ç‰©å›žé¿ãŒèµ·ã“ã£ãŸå ´åˆD.flag==1ã«ãªã£ã¦ã‚‹
 		
-		if(D.flag==0){  //áŠQ•¨‰ñ”ð‚ª‹N‚±‚ç‚È‚©‚Á‚½ê‡
+		if(D.flag==0){  //éšœå®³ç‰©å›žé¿ãŒèµ·ã“ã‚‰ãªã‹ã£ãŸå ´åˆ
 			if(move[i]==1){
-				D.y+=1;  //‘O‚É1i‚Þ
+				D.y+=1;  //å‰ã«1é€²ã‚€
 			}else if(move[i]==2){
-				D.y+=-1;  //Œã‚ë‚É1i‚Þ
+				D.y+=-1;  //å¾Œã‚ã«1é€²ã‚€
 			}else if(move[i]==3){
-				D.x+=1;  //‰E‚É1i‚Þ
+				D.x+=1;  //å³ã«1é€²ã‚€
 			}else if(move[i]==4){
-				D.x+=-1;  //¶‚É1i‚Þ
+				D.x+=-1;  //å·¦ã«1é€²ã‚€
 			}
-		}else if(D.flag==1){  //áŠQ•¨‰ñ”ð‚ª‹N‚±‚Á‚½ê‡
+		}else if(D.flag==1){  //éšœå®³ç‰©å›žé¿ãŒèµ·ã“ã£ãŸå ´åˆ
 			break;
 		}
 		
 	}
 	
-	if(D.flag==1){  //áŠQ•¨‰ñ”ð‚ª‹N‚±‚Á‚½ê‡
-		D.flag=0;  //Ä‹A“à‚Å‚ÍáŠQ•¨‰ñ”ð‚Í‹N‚«‚Ä‚È‚¢‚©‚ç0‚É–ß‚·
-		dronego(D,nextnode);  //Ä‹A‚ðŽg‚Á‚Ä‰ñ”ðŒã‚Ì’n“_‚©‚ç–Ú“I’n‚Ì’[“_‚Éi‚Þ
+	if(D.flag==1){  //éšœå®³ç‰©å›žé¿ãŒèµ·ã“ã£ãŸå ´åˆ
+		D.flag=0;  //å†å¸°å†…ã§ã¯éšœå®³ç‰©å›žé¿ã¯èµ·ãã¦ãªã„ã‹ã‚‰0ã«æˆ»ã™
+		dronego(D,nextnode);  //å†å¸°ã‚’ä½¿ã£ã¦å›žé¿å¾Œã®åœ°ç‚¹ã‹ã‚‰ç›®çš„åœ°ã®ç«¯ç‚¹ã«é€²ã‚€
 	}
 	
 }
