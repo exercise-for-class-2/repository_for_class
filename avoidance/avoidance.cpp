@@ -23,7 +23,8 @@ bool chk_wall(Drone d,i,j){
 }
 
 
-void avoidance(drone D,bool left, bool right){
+void avoidance(drone D){
+    bool right = false, left = false;
     int nextx,nexty;
     if(fil[2][0] && fil[0][0] && fil[4][0]){        //前方三つのセンサーが反応
         if(fil[4][2]){                              //右に壁判定且つ右に壁はマップに存在しないとき
@@ -117,6 +118,9 @@ void avoidance(drone D,bool left, bool right){
                 }
             }
         }
+    }
+    if(left && right){
+        D.z += 1;           //階層の変更
     }
     //後ろに下がる処理は後日実装予定
     // else if(fil[2][0] && fil[0][2]){
