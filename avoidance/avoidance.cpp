@@ -23,47 +23,109 @@ bool chk_wall(Drone d,i,j){
 }
 
 
-void avoidance(drone D,bool left, bool right, bool front, bool back){
+void avoidance(drone D,bool left, bool right){
     int nextx,nexty;
     if(fil[2][0] && fil[0][0] && fil[4][0]){        //前方三つのセンサーが反応
         if(fil[4][2]){                              //右に壁判定且つ右に壁はマップに存在しないとき
-            if(chk_wall(D,D.x+1,D.y)){              //前方の障害物がなくなるまで左に進む
-                D.x -= 1;
-                update_fil();
-            }else{
-                right = true;
+            while(true){
+                if(chk_wall(D,D.x+1,D.y)){              //前方の障害物がなくなるまで左に進む
+                    if(!fil[0][3] && fil[0][4]){
+                        while(fil[4][3]){
+                            D.y += 1;
+                        }
+                        return;
+                    }
+                    D.x -= 1;
+                    update_fil();
+                }else{
+                    left = true;
+                    break;
+                }
+            }
+            if(left){
+                while(true){
+                    if(chk_wall(D,D.x-1,D.y)){
+                        if(!fil[0][1] && fil[0][0]){
+                            while(fil[0][3]){
+                                D.y += 1;
+                            }
+                            return;
+                        }
+                        D.x += 1;
+                        update_fil();
+                    }else{
+                        right = true;
+                        break;
+                    }
+                }
             }
         }else if(fil[0][2]){                        //左に壁判定且つ左の壁がマップに存在しないとき
-            if(chk_wall(D,D.x-1,D.y)){              //前方の障害物がなくなるまで右に進む
-                D.x += 1;
-                update_fil();
-            }else{
-                left = true;
+            while(true){
+                if(chk_wall(D,D.x-1,D.y)){              //前方の障害物がなくなるまで右に進む
+                    if(!fil[0][1] && fil[0][0]){
+                        while(fil[0][3]){
+                            D.y += 1;
+                        }
+                        return;
+                    }
+                    D.x += 1;
+                    update_fil();
+                }else{
+                    right = true;
+                    break;
+                }
+            }
+            if(right){
+                while(true){
+                    if(chk_wall(D,D.x+1,D.y)){              //前方の障害物がなくなるまで左に進む
+                        if(!fil[0][3] && fil[0][4]){
+                            while(fil[4][3]){
+                                D.y += 1;
+                            }
+                            return;
+                        }
+                        D.x -= 1;
+                        update_fil();
+                    }else{
+                        left = true;
+                        break;
+                    }
+                }
             }
         }
     }else if(fil[2][0]){                        //前方に障害物あり
-        if(!fil[0][0] && fil[4][0]){            //左斜め前に障害物なしかつ右斜め前に障害物あり
-            if(chk_wall(D, D.x+1, D.y+1)){      //右斜め前に障害物がなくなるまで左斜め前に進む
-                D.x += 1;
-                D.y += 1;
-                update_fil();
+        if(!fil[0][0] && fil[0][4]){            //左斜め前に障害物なしかつ右斜め前に障害物あり
+            while(true){
+                if(chk_wall(D, D.x+1, D.y+1)){      //右斜め前に障害物がなくなるまで左斜め前に進む
+                    if(!fil[0][4]){
+                        return;
+                    }
+                    D.x -= 1;
+                    D.y += 1;
+                    update_fil();
+                }
             }
-        }else if(!fil[4][0] && fil[0][0]){       //右斜め前に障害物なしかつ左斜め前に障害物あり
-            if(chk_wall(D, D.x-1, D.y+1)){       //左前方に障害物がなくなるまで
-                D.x -= 1;
-                D.y += 1;
-                update_fil();
+        }else if(!fil[0][4] && fil[0][0]){       //右斜め前に障害物なしかつ左斜め前に障害物あり
+            while(true){
+                if(chk_wall(D, D.x-1, D.y+1)){       //左前方に障害物がなくなるまで
+                    if(!fil[0][0]){
+                        return;
+                    }
+                    D.x += 1;
+                    D.y += 1;
+                    update_fil();
+                }
             }
         }
-    }else if(fil[2][0] && fil[0][0] && front){
-        if(chk_wall(D, D.x-1,D.y)){
-            D.y -= 1;
-            update_fil();
-        }
-    }//角にぶつかった場合、後ろに下がるべきか階層変更を検討するべきか？
-    if(!fil[2][0]){
-        return;
-    }else{
-        avoidance(D,left,right);
     }
+    //後ろに下がる処理は後日実装予定
+    // else if(fil[2][0] && fil[0][2]){
+    //     while(true){
+    //         if(chk_wall(D, D.x-1,D.y)){
+    //             if(fil[0][0])
+    //             D.y -= 1;
+    //             update_fil();
+    //         }
+    //     }
+    // }
 }
