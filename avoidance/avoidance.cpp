@@ -2,6 +2,7 @@
 struct drone{
     int x,y,z;        //ドローンの現在地の座標
     bool fil[5][5];      //レーザーレンジファインダーより入手した情報を格納 
+    bool flag;
     void avoidance();     //緊急回避用プログラム
     void extract();       //地図から端点を抽出する関数
     void Dijkstra();      //Dijkstraによる経路計算をする関数
@@ -24,6 +25,7 @@ bool chk_wall(Drone d,i,j){
 
 
 void avoidance(drone D){
+    D.flag = true;
     bool right = false, left = false;
     int nextx,nexty;
     if(fil[2][0] && fil[0][0] && fil[4][0]){        //前方三つのセンサーが反応
@@ -118,9 +120,12 @@ void avoidance(drone D){
                 }
             }
         }
+    }else{
+        D.flag = false;
     }
     if(left && right){
-        D.z += 1;           //階層の変更
+        D.z += 1;               //階層の変更
+        Dijkstra();
     }
     //後ろに下がる処理は後日実装予定
     // else if(fil[2][0] && fil[0][2]){
@@ -132,4 +137,5 @@ void avoidance(drone D){
     //         }
     //     }
     // }
+
 }
