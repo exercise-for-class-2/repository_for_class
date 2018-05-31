@@ -7,7 +7,7 @@
 #include <cmath>
 #include <stdio.h>
 #include <time.h>
-#include <unistd.h>
+//#include <unistd.h>
 
 #define GNPLT "C:/PROGRA~1/gnuplot/bin/gnuplot.exe" 
 #define STRLN 100
@@ -72,7 +72,8 @@ void make_node(std::string file, int map[][Y], Node node[], int n);
 //file = "xy_edges.dat"から, ノードの個数を返す
 int number_of_node(std::string file);
 //gnuplotで描画し画像をpngファイルに保存
-int gnuplot_spc(std::string ofile);
+//int gnuplot_spc(std::string ofile1, std::string ofile2);
+int gnuplot_spc(char *file1, char *file2);
 //ノード間の壁の判定
 bool check_wall(Node node[], int map[][Y], int i_s, int i_g);
 //check_wall()内で使う関数
@@ -80,9 +81,9 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y);
 //dijkstra経路を図示するためのファイル書き込み
 void make_dijkstra(std::string file, Node node[], int start, int goal, int route[]);
 //startとgoalのノードを保存
-void set_goal(Node node[], int n, int start, int goal);
+void set_goal(Node node[], int n, int start, int *goal);
 //startを決める. 一番初めはgoalも決める
-void set_start(Node node[], int n, int strat, int goal);
+void set_start(Node node[], int n, int *strat, int *goal);
 
 //端点を判定する関数. 端点ならばtrueを返す
 bool check(int k, int i,int j,int map[][X][Y]);
@@ -110,9 +111,10 @@ int main(){
 /*-------------------start_drone()------------------------*/
 void start_drone(){
     Drone d;
+    //Drone d;
     d.get_map();
     make_dat(d);
-    std::cout << "[OK] Complete getmap()\n";
+    std::cout << "[OK] Complete get_map()\n";
     d.Dijkstra();
     /*while( d.x!=G_X || d.y!=G_Y || d.z!=G_Z ){
         d.Dijkstra();
@@ -326,26 +328,29 @@ void Drone::Dijkstra(){
         std::string file0_edges = "edges0.dat";
         std::string file0_node = "node0.dat";
         std::string file0_dijkstra = "dijkstra0.dat";
+        char f0_all[STRLN] = "all0";
+        char f0_edges[STRLN] = "edges0";
+        char f0_dijkstra[STRLN] = "dijkstra0";
 
+        initialize_map_buffer(map_buffer);
+        change_map(map, map_buffer);
+        output_map(map_buffer);
+
+        //output_map(map_buffer);
         int n = number_of_node(file0_edges);            //node(端点)の総数
-        printf("%d\n", n);
-        puts("1");
         Node node[n];
         Node_in(node, file0_edges);                     //端点をノードとしてnode[]に保存
-        puts("2");
         make_node(file0_node, map_buffer[0], node, n);  //壁を判定してノードが向かうことのできるノードを保存していく
-        puts("3");
         input_edges_cost(node, n);                      //node間の距離を保存
-        puts("4");
-        set_start(node, n, start, goal);                //startを決める. 一番初めはゴールも決める
-        puts("5");
+        set_start(node, n, &start, &goal);              //startを決める. 一番初めはゴールも決める
         search_node(node, n, start);                    //スタートから到達可能なすべてのノードへの最小コストと最短経路を保存
-        puts("6");
-        set_goal(node, n, start, goal);                 /*現在いる階層でのスタートノードとゴールノードを決める. 
+        set_goal(node, n, start, &goal);                /*現在いる階層でのスタートノードとゴールノードを決める. 
                                                         現在の階層から最終的なゴールに到達できない場合のゴールノードの選び方は未定*/
-        puts("7");
         make_dijkstra(file0_dijkstra, node, start, goal, shortest_route);   //startからgoalまでの最短経路を保存
-        puts("8");
+        print_array(node, n);
+        gnuplot_spc(f0_all, f0_dijkstra);         //ドローンの軌跡をpngに保存
+        gnuplot_spc(f0_edges, f0_dijkstra);       //ドローンの軌跡をpngに保存
+
     }
 }
 
@@ -417,14 +422,14 @@ void input_edges_cost(Node node[], int n){
     }
 }
 
-void set_start(Node node[], int n, int start, int goal){
-    if(start == -1 && goal == -1){
-        start = 0;
-        goal = n-1;
+void set_start(Node node[], int n, int *start, int *goal){
+    if((*start) == -1 && (*goal) == -1){
+        *start = 0;
+        *goal = n-1;
     }
     else{
-        start = goal;
-        goal = -1;
+        *start = *goal;
+        *goal = -1;
     }
 }
 
@@ -435,7 +440,7 @@ void search_node(Node node[], int n, int start){
     int j = 0;
     int n_edges_to = node[i].edges_to.size();
     node[i].cost = 0;       //startまでのcostは0
-    node[i].path = 0;
+    node[i].path = start;
     node[i].flag = true;    //探索済み
     node[i].done = true;    //確定ノード
     cnt += 1;
@@ -491,14 +496,14 @@ int search_confirm_node(Node node[], int n, int *cnt){
     return i;
 }
 
-void set_goal(Node node[], int n, int start, int goal){
-    if(node[goal].path != -1){//goalに到達可能なら
-        goal = n-1;           //goalは最終的なゴール
+void set_goal(Node node[], int n, int start, int *goal){
+    if(node[*goal].path != -1){//goalに到達可能なら
+        *goal = n-1;           //goalは最終的なゴール
     }
     else{//現在の階層のstartからでは到達不可能なら
     /*次に向かう階層に行くことのできる地点を探してそこをgoalとする*/
     /*その決め方は未定. 今は形式的にgoal = n-1としておく*/
-    goal = n-1;
+    *goal = n-1;
     }
 }
 
@@ -522,6 +527,7 @@ void make_dijkstra(std::string file, Node node[], int start, int goal, int route
     for(int j=0; j<k; j++){
         route[j] = tmp[k-j-1];
     }
+    std::cout << '\n';
 }
 
 bool check_wall(Node node[], int map[][Y], int i_s, int i_g){
@@ -683,3 +689,82 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
 /*-------------------------------------------------------------------------------------------------*/
 
 
+int gnuplot_spc(char *file1, char *file2){
+    /*char file1[STRLN]="all0", file2[STRLN]="dijkstra0";
+    int i = 0;
+    while(ofile1[i] != '.'){
+      file1[i] = ofile1[i];
+      i++;
+    }
+    i = 0;
+    while(ofile2[i] != '.'){
+      file2[i] = ofile2[i];
+      i++;
+    }*/
+    printf("%s %s\n", file1, file2);
+    FILE *gp; if((gp = _popen(GNPLT, "w")) == NULL) { printf("ERR\n"); exit(1); }
+    fprintf(gp, "set size square\nset colorsequence classic\n");
+    fprintf(gp, "set style l 1 lt 1 lc 1 lw 1 pt 5 ps 1\n");
+    fprintf(gp, "set style l 2 lt 1 lc 3 lw 1 pt 5 ps 1\n");
+    fprintf(gp, "set ticscale 0\nset xtics 10\nset ytics 10\n");
+    fprintf(gp, "set xrange[0:100]\nset yrange[0:100]\n");
+    fprintf(gp, "set terminal png\n");
+    //fprintf(gp, "set output '%s.png'\n", file1);
+    fprintf(gp, "plot '%s.dat' linestyle 1\n", file1);
+    fprintf(gp, "set output '%s.png'\n", file1);
+    fprintf(gp, "replot '%s.dat' with lp linestyle 2\n", file2);
+    //system("pause"); 
+    fprintf(gp, "exit\n");
+    return _pclose(gp);
+}
+
+void print_array(Node node[], int n){
+  //各ノード間の距離を表示
+  int label[n];
+  for(int i=0; i<n; i++){
+      label[i] = 0;
+  }
+  std::cout << "[distance between nodes]\n";
+  for(int i=0; i<n; i++){
+    int n_edges = node[i].edges_to.size();
+    for(int j=0; j<n_edges; j++){
+      if(label[node[i].edges_to[j]] == 0){
+        std::cout << i << "-" << node[i].edges_to[j] << " : " << node[i].edges_cost[j] << '\n';
+      }
+    }
+    label[i] = 1;
+  }
+  std::cout << '\n';
+
+  //各ノードまでのコストを表示
+  std::cout << "[cost of nodes]\n";
+  for(int i=0; i<n; i++){
+    std::cout  << "node:" << i << "(" << node[i].x << "," << node[i].y << ") ";
+    std::cout<< " cost:" << node[i].cost << '\n';
+  }
+  std::cout << '\n';
+
+  //各ノードに入ってくるノード
+  std::cout << "[path]\n";
+  for(int i=0; i<n; i++){
+    std::cout << i << "-" << node[i].path << '\n';
+  }
+  std::cout << '\n';
+
+  //最短経路を表示
+  std::cout << "[Dijkstra rote]\n";
+  int dij[n];
+  int i_d = 0;
+  int k = n-1;
+  dij[i_d] = k;
+  i_d += 1;
+  while(k != 0){
+    dij[i_d] = node[k].path;
+    i_d += 1;
+    k = node[k].path;
+  }
+  for(int i=i_d-1; i>=0; i--){
+    std::cout << dij[i] << " ";
+  }
+  std::cout << '\n' << '\n';
+}
