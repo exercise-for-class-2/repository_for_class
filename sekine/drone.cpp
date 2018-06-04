@@ -7,6 +7,7 @@
 #include <cmath>
 #include <stdio.h>
 #include <time.h>
+#include <iomanip>
 //#include <unistd.h>
 
 #define GNPLT "C:/PROGRA~1/gnuplot/bin/gnuplot.exe" 
@@ -22,6 +23,7 @@
 #define G_Z 0       //goalのy座標
 #define MAX_COST 10000
 #define MAX_NODE 10000
+#define MAX 10000
 
 struct Node{                         //このノードから伸びるエッジの情報
     std::vector<int> edges_to;       //各エッジの接続先のノード番号
@@ -47,11 +49,15 @@ struct Drone{
     int shortest_route[MAX_NODE];   //最短経路
     int map[Z][X][Y];               //マップ情報を格納
     int map_buffer[Z][X][Y];        //仮想壁考慮のマップ
-    int nextnode;                   //次に向かうノード
+    int nextnode = -1;              //次に向かうノード
     int start = -1;                 //start node
     int goal = -1;                  //goal node
 };
 
+Node node[MAX_NODE];
+Drone d;
+int route[MAX][2];      //gnuplotで使う
+int i_route = 0;        //routeの添え字
 
 //すべてのプログラムを起動する
 void start_drone();
@@ -84,7 +90,6 @@ void make_dijkstra(std::string file, Node node[], int start, int goal, int route
 void set_goal(Node node[], int n, int start, int *goal);
 //startを決める. 一番初めはgoalも決める
 void set_start(Node node[], int n, int *strat, int *goal);
-
 //端点を判定する関数. 端点ならばtrueを返す
 bool check(int k, int i,int j,int map[][X][Y]);
 //gnuplotで地図を描画するためのfileを作成する
@@ -95,11 +100,14 @@ void change_map(int map[][X][Y], int map_buffer[][X][Y]);
 void output_map(int map_buffer[][X][Y]);
 //map_bufferの初期化
 void initialize_map_buffer(int map_buffer[][X][Y]);
-
 //端点から端点までドローンの現在地を更新するごとにavoidanceを呼び出しつつ進む
-void dronego(Drone d);
+void dronego();
 //mapから必要な点をファイルへ書き込む
-void make_dat(Drone d);
+void make_dat();
+//d.avoidance()内で用いる壁の判定
+bool chk_wall(int i, int j);
+//droneの軌跡をすべて座標でたどる
+void print_route();
 
 /*--------------------main文---------------------------*/
 int main(){
@@ -110,31 +118,39 @@ int main(){
 
 /*-------------------start_drone()------------------------*/
 void start_drone(){
-    Drone d;
-    //Drone d;
     d.get_map();
-    make_dat(d);
-    std::cout << "[OK] Complete get_map()\n";
-    d.Dijkstra();
-    /*while( d.x!=G_X || d.y!=G_Y || d.z!=G_Z ){
+    make_dat(); 
+    while( d.x!=G_X || d.y!=G_Y || d.z!=G_Z ){
         d.Dijkstra();
-        dronego(d);
-    }*/
-    std::cout << "[OK] Drone arrived at the goal\n";
+        int z_now = d.z;    //現在の階層
+        int i = 1;          //d.shortest_routeのi番目のnode
+        d.nextnode = d.shortest_route[i];
+        while(d.nextnode != -1){//goalに着くまで繰り返す(goalに着いたらnextnode=-1にする)
+            dronego();
+            if(d.nextnode != d.goal){
+                i++;
+                d.nextnode = d.shortest_route[i];
+            }else{
+                d.nextnode = -1;
+            }
+        }
+    }
+    print_route();  //スタートからゴールまでのドローンの軌跡を座標で一つ一つ表示
+    std::cout << "\n[OK] Drone arrived at the goal\n";
 }
 /*--------------------------------------------------------*/
 
 
 /*-------------------------------------Drone::get_map()関連の関数---------------------------------------------*/
 void Drone::get_map(){
-    std::string file0_map   = "map0.dat";
+    std::stringstream file_map;
     std::string str;
     int tmp;
 
-
     //map1, 2, 3...と複数ある場合の効率的な入れ方が思いつかない
     for(int k=0; k<Z; k++){
-        std::ifstream ifile(file0_map.c_str());
+        file_map << "map" << std::setw(2) << std::setfill('0') << k << ".dat";
+        std::ifstream ifile(file_map.str().c_str());
         for(int i=0; i<X; i++){
             std::getline(ifile, str);
             std::istringstream iss(str);
@@ -149,20 +165,20 @@ void Drone::get_map(){
         ifile.close();
     }
 }
-/*-------------------------------------------------------------------*/
+/*-----------------------------------------------------------------------------------------------------------*/
 
 
 /*---------------------------make_dat()関連の関数-----------------------------------------*/
-void make_dat(Drone d){
+void make_dat(){
     initialize_map_buffer(d.map_buffer);
     change_map(d.map, d.map_buffer);
     output_map(d.map_buffer);
-    char file0_all[STRLN]   = "all0.dat";
-    char file0_edges[STRLN] = "edges0.dat";
+    char file_all[STRLN];
+    char file_edges[STRLN];
     for(int k=0; k<Z; k++){
-        if(k==0){
-            output_dat(file0_all, file0_edges, d.map_buffer, k);      
-        }
+        sprintf(file_all  , "all%02d.dat"  , k);
+        sprintf(file_edges, "edges%02d.dat", k);
+        output_dat(file_all, file_edges, d.map_buffer, k);      
     }
 }
 
@@ -246,15 +262,18 @@ void initialize_map_buffer(int map_buffer[][X][Y]){
 }
 
 void output_map(int map_buffer[][X][Y]){
-    std::string ofile = "map0_buffer.dat";
-    std::ofstream ofp(ofile.c_str());
-    for(int i=0; i<X; i++){
-        for(int j=0; j<Y; j++){
-            ofp << map_buffer[0][i][j] << " ";
+    std::stringstream file_map_buffer;
+    for(int k=0; k<Z; k++){
+        file_map_buffer << "map_buffer" << std::setw(2) << std::setfill('0') << k << ".dat";
+        std::ofstream ofp(file_map_buffer.str().c_str());
+        for(int i=0; i<X; i++){
+            for(int j=0; j<Y; j++){
+                ofp << map_buffer[k][i][j] << " ";
+            }
+            ofp << '\n';
         }
-        ofp << '\n';
+        ofp.close();
     }
-    ofp.close();
 }
 
 void output_dat(char *file_all, char *file_edges, int map[][X][Y], int k){
@@ -322,35 +341,37 @@ bool check(int k,int i,int j,int map[][X][Y]){
 
 /*-----------------------------------Drone::Dijkstra()--------------------------------------------------------*/
 void Drone::Dijkstra(){
-    if(z == S_Z){//各階層ごとに同じ処理をしたい
-        std::string file0_map = "map0.dat";
-        std::string file0_all = "all0.dat";
-        std::string file0_edges = "edges0.dat";
-        std::string file0_node = "node0.dat";
-        std::string file0_dijkstra = "dijkstra0.dat";
-        char f0_all[STRLN] = "all0";
-        char f0_edges[STRLN] = "edges0";
-        char f0_dijkstra[STRLN] = "dijkstra0";
+    std::stringstream file_map, file_all, file_edges, file_node, file_dijkstra;
+    char gnufile_all[STRLN], gnufile_edges[STRLN], gnufile_dijkstra[STRLN];
+    for(int i=0; i<Z; i++){
+        //fileの名前を自動生成
+        file_map      << "map"      << std::setw(2) << std::setfill('0') << i << ".dat";
+        file_all      << "all"      << std::setw(2) << std::setfill('0') << i << ".dat";
+        file_edges    << "edges"    << std::setw(2) << std::setfill('0') << i << ".dat";
+        file_node     << "node"     << std::setw(2) << std::setfill('0') << i << ".dat";
+        file_dijkstra << "dijkstra" << std::setw(2) << std::setfill('0') << i << ".dat";
+        sprintf(gnufile_all,      "all%02d"     , i);
+        sprintf(gnufile_edges,    "edges%02d"   , i);
+        sprintf(gnufile_dijkstra, "dijkstra%02d", i);
 
+        //アドレスの都合上再度行う処理. あまり気にしないで
         initialize_map_buffer(map_buffer);
         change_map(map, map_buffer);
         output_map(map_buffer);
 
-        //output_map(map_buffer);
-        int n = number_of_node(file0_edges);            //node(端点)の総数
-        Node node[n];
-        Node_in(node, file0_edges);                     //端点をノードとしてnode[]に保存
-        make_node(file0_node, map_buffer[0], node, n);  //壁を判定してノードが向かうことのできるノードを保存していく
-        input_edges_cost(node, n);                      //node間の距離を保存
-        set_start(node, n, &start, &goal);              //startを決める. 一番初めはゴールも決める
-        search_node(node, n, start);                    //スタートから到達可能なすべてのノードへの最小コストと最短経路を保存
-        set_goal(node, n, start, &goal);                /*現在いる階層でのスタートノードとゴールノードを決める. 
-                                                        現在の階層から最終的なゴールに到達できない場合のゴールノードの選び方は未定*/
-        make_dijkstra(file0_dijkstra, node, start, goal, shortest_route);   //startからgoalまでの最短経路を保存
+        //ここからDijkstra法スタート
+        int n = number_of_node(file_edges.str());           //node(端点)の総数
+        Node_in(node, file_edges.str());                    //端点をノードとしてnode[]に保存
+        make_node(file_node.str(), map_buffer[i], node, n); //壁を判定してノードが向かうことのできるノードを保存していく
+        input_edges_cost(node, n);                          //node間の距離を保存
+        set_start(node, n, &start, &goal);                  //startを決める. 一番初めはゴールも決める
+        search_node(node, n, start);                        //スタートから到達可能なすべてのノードへの最小コストと最短経路を保存
+        set_goal(node, n, start, &goal);                    /*現在いる階層でのスタートノードとゴールノードを決める. 
+                                                            現在の階層から最終的なゴールに到達できない場合のゴールノードの選び方は未定*/
+        make_dijkstra(file_dijkstra.str(), node, start, goal, shortest_route);   //startからgoalまでの最短経路を保存
         print_array(node, n);
-        gnuplot_spc(f0_all, f0_dijkstra);         //ドローンの軌跡をpngに保存
-        gnuplot_spc(f0_edges, f0_dijkstra);       //ドローンの軌跡をpngに保存
-
+        gnuplot_spc(gnufile_all, gnufile_dijkstra);         //ドローンの軌跡をpngに保存
+        gnuplot_spc(gnufile_edges, gnufile_dijkstra);       //ドローンの軌跡をpngに保存
     }
 }
 
@@ -686,22 +707,7 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
   }
 }
 
-/*-------------------------------------------------------------------------------------------------*/
-
-
 int gnuplot_spc(char *file1, char *file2){
-    /*char file1[STRLN]="all0", file2[STRLN]="dijkstra0";
-    int i = 0;
-    while(ofile1[i] != '.'){
-      file1[i] = ofile1[i];
-      i++;
-    }
-    i = 0;
-    while(ofile2[i] != '.'){
-      file2[i] = ofile2[i];
-      i++;
-    }*/
-    printf("%s %s\n", file1, file2);
     FILE *gp; if((gp = _popen(GNPLT, "w")) == NULL) { printf("ERR\n"); exit(1); }
     fprintf(gp, "set size square\nset colorsequence classic\n");
     fprintf(gp, "set style l 1 lt 1 lc 1 lw 1 pt 5 ps 1\n");
@@ -709,7 +715,6 @@ int gnuplot_spc(char *file1, char *file2){
     fprintf(gp, "set ticscale 0\nset xtics 10\nset ytics 10\n");
     fprintf(gp, "set xrange[0:100]\nset yrange[0:100]\n");
     fprintf(gp, "set terminal png\n");
-    //fprintf(gp, "set output '%s.png'\n", file1);
     fprintf(gp, "plot '%s.dat' linestyle 1\n", file1);
     fprintf(gp, "set output '%s.png'\n", file1);
     fprintf(gp, "replot '%s.dat' with lp linestyle 2\n", file2);
@@ -768,3 +773,230 @@ void print_array(Node node[], int n){
   }
   std::cout << '\n' << '\n';
 }
+
+/*-------------------------------------------------------------------------------------------------*/
+
+
+/*----------------------dronego()---------------------------------------------------------------------------*/
+
+//端点から端点までドローンの現在地を更新するごとにavoidanceを呼び出しつつ進む
+void dronego(){
+	
+	int movex,movey;  //現在地から端点に進むために移動しなきゃいけないx座標の数とy座標の数
+	movex = node[d.nextnode].x - d.x;  // movexを算出
+	movey = node[d.nextnode].y - d.y;  // moveyを算出
+	
+	int move[std::abs(movex)+std::abs(movey)];  //端点から端点に進むためにx座標とy座標をいくつずつ,どの順番で増減させるのかを格納.yが1増加するとき(方向で表すと前)は1,yが1減少(後ろ)が2,xが1増加(右)が3,xが1減少(左)が4として対応
+	
+	/* 
+		moveの例:右に1,前に1づつ座標(0,0)から(5,5)まで進みたいとき
+		move[0]=3,move[1]=1,move[2]=3,move[3]=1,move[4]=3,move[5]=1,move[6]=3,move[7]=1,move[8]=3,move[9]=1;
+	*/
+	
+	// ↓moveの格納方法案↓
+	int ycount=0,count=0;  //ycount...yが増減した回数をカウント。  count...xまたはyが増減した回数。最終的にmovex+moveyになるはず
+    double slope;  //今いる端点の座標から次向かう端点の座標への傾き
+    if(movex == 0){
+        for(int y=1; y<=std::fabs(movey); y++){
+            if(movey>0){
+                move[count]=1;
+                count++;
+            }
+            else if(movey<0){
+                move[count]=2;
+                count++;
+            }
+        }
+    }
+    else{
+        slope=(double)(movey)/(double)(movex);  //slopeを算出
+        for(int x=1; x<=std::fabs(movex); x++){  //x座標を一回づつ増減、その度にy座標も増減させるか判定
+            //x座標を増減
+            if(movex>0){
+                move[count]=3;
+                count++;
+            }else if(movex<0){
+                move[count]=4;
+                count++;
+            }
+            //y座標を増減
+            while(std::fabs(slope)*x>=ycount){  //各xに対してslope*xが1を超えたタイミングでyを1回増減、2を超えたタイミングでyをもう1回増減させたい。3を超えたらさらにもう一回yを...(略)
+                if(movey>0){
+                    move[count]=1;
+                    count++;
+                }else if(movey<0){
+                    move[count]=2;
+                    count++;
+                }
+                ycount++;  //yが増減した回数を増やす
+            }
+        }
+    }
+	
+	//ドローンの位置を更新していく
+	for(int i=0; i<std::abs(movex)+std::abs(movey); i++){
+		
+		d.avoidance();   //進もうとしてる座標が障害物でふさがってたら障害物回避。障害物回避が起こった場合D.flag==1になってる
+		
+		if(d.flag==false){//障害物回避が起こらなかった場合
+			if(move[i]==1){
+				d.y+=1;   //前に1進む
+			}else if(move[i]==2){
+				d.y+=-1;  //後ろに1進む
+			}else if(move[i]==3){
+				d.x+=1;   //右に1進む
+			}else if(move[i]==4){
+				d.x+=-1;  //左に1進む
+			}
+            route[i_route][0]=d.x;
+            route[i_route][1]=d.y;
+            i_route++;
+		}else if(d.flag==1){//障害物回避が起こった場合
+			break;
+		}
+	}
+	
+	if(d.flag==true){  //障害物回避が起こった場合
+		d.flag=false;  //再帰内では障害物回避は起きてないから0に戻す
+		dronego();    //再帰を使って回避後の地点から目的地の端点に進む
+	}
+}
+/*----------------------------------------------------------------------------------------------------------*/
+
+
+/*-------------------------Drone::avoidance()----------------------------------------------------------------*/
+bool chk_wall(int map[][Y], int i, int j){
+	if(map[i][j] == 0){
+		return false;
+	}else{
+		return true;
+	}
+}
+
+void Drone::avoidance(){
+    flag = true;
+    bool right = false, left = false;
+    int nextx,nexty;
+    if(fil[2][0] && fil[0][0] && fil[4][0]){        //前方三つのセンサーが反応
+        if(fil[4][2]){                              //右に壁判定且つ右に壁はマップに存在しないとき
+            while(true){
+                if(chk_wall(map[z], x+1, y)){       //前方の障害物がなくなるまで左に進む
+                    if(!fil[0][3] && fil[0][4]){
+                        while(fil[4][3]){
+                            y += 1;
+                        }
+                        return;
+                    }
+                    x -= 1;
+                    //update_fil();
+                }else{
+                    left = true;
+                    break;
+                }
+            }
+            if(left){
+                while(true){
+                    if(chk_wall(map[z], x-1, y)){
+                        if(!fil[0][1] && fil[0][0]){
+                            while(fil[0][3]){
+                                y += 1;
+                            }
+                            return;
+                        }
+                        x += 1;
+                        //update_fil();
+                    }else{
+                        right = true;
+                        break;
+                    }
+                }
+            }
+        }else if(fil[0][2]){                        //左に壁判定且つ左の壁がマップに存在しないとき
+            while(true){
+                if(chk_wall(map[z], x-1, y)){       //前方の障害物がなくなるまで右に進む
+                    if(!fil[0][1] && fil[0][0]){
+                        while(fil[0][3]){
+                            y += 1;
+                        }
+                        return;
+                    }
+                    x += 1;
+                    //update_fil();
+                }else{
+                    right = true;
+                    break;
+                }
+            }
+            if(right){
+                while(true){
+                    if(chk_wall(map[z], x+1, y)){    //前方の障害物がなくなるまで左に進む
+                        if(!fil[0][3] && fil[0][4]){
+                            while(fil[4][3]){
+                                y += 1;
+                            }
+                            return;
+                        }
+                        x -= 1;
+                        //update_fil();
+                    }else{
+                        left = true;
+                        break;
+                    }
+                }
+            }
+        }
+    }else if(fil[2][0]){                        //前方に障害物あり
+        if(!fil[0][0] && fil[0][4]){            //左斜め前に障害物なしかつ右斜め前に障害物あり
+            while(true){
+                if(chk_wall(map[z], x+1, y+1)){ //右斜め前に障害物がなくなるまで左斜め前に進む
+                    if(!fil[0][4]){
+                        return;
+                    }
+                    x -= 1;
+                    y += 1;
+                    //update_fil();
+                }
+            }
+        }else if(!fil[0][4] && fil[0][0]){       //右斜め前に障害物なしかつ左斜め前に障害物あり
+            while(true){
+                if(chk_wall(map[z], x-1, y+1)){  //左前方に障害物がなくなるまで
+                    if(!fil[0][0]){
+                        return;
+                    }
+                    x += 1;
+                    y += 1;
+                    //update_fil();
+                }
+            }
+        }
+    }else{
+        flag = false;
+    }
+    if(left && right){
+        z += 1;               //階層の変更
+        Dijkstra();
+    }
+    //後ろに下がる処理は後日実装予定
+    // else if(fil[2][0] && fil[0][2]){
+    //     while(true){
+    //         if(chk_wall(D, D.x-1,D.y)){
+    //             if(fil[0][0])
+    //             D.y -= 1;
+    //             update_fil();
+    //         }
+    //     }
+    // }
+
+}
+/*-----------------------------------------------------------------------------------------------------------*/
+
+
+/*-----------------------------------------その他-----------------------------------------------------------*/
+void print_route(){
+    std::cout << "\n[route]\n";
+    std::cout << "(5, 5)\n";
+    for(int i=0; i<i_route; i++){
+        std::cout << "(" << route[i][0] << ", " << route[i][1] << ")\n";
+    }
+}
+/*----------------------------------------------------------------------------------------------------------*/
