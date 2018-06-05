@@ -379,6 +379,7 @@ int gnuplot_spc(std::string ofile){
     fprintf(gp, "set style l 2 lt 1 lc 3 lw 1 pt 5 ps 1\n");
     fprintf(gp, "set ticscale 0\nset xtics 10\nset ytics 10\n");
     fprintf(gp, "set xrange[0:100]\nset yrange[0:100]\n");
+    fprintf(gp, "unset key\n");
     if(ofile == "xy_all2.dat"){
       fprintf(gp, "set terminal png\n");
       fprintf(gp, "plot 'xy_all2.dat' linestyle 1\n");
@@ -408,7 +409,7 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
   int d_x = g_x - s_x;       //端点同士のx座標の差difference_x
   int d_y = g_y - s_y;       //端点同士のy座標の差difference_y
   int slope1, slope2;
-  int flag_d = 0
+  int flag_d = 0;
   if(d_x == 0)  flag_d = 1;
   else          slope1 = d_y / d_x;  //2点間の傾きd_y / d_x
   if(d_y == 0)  flag_d = 2;

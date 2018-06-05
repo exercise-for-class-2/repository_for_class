@@ -26,7 +26,7 @@ int main() {
     spcmap(file1, spc_ex1);              //0と1の羅列をfile1に保存
     count_xy(file1, &x, &y);            //縦と横の長さをx, yに代入
 */
-    std::string file2 = "map2.dat";
+    std::string file2 = "map00.dat";
     spcmap(file2, spc_ex2);
     count_xy(file2, &x, &y);
     std::cout << "x:" << x << " y:" << y << '\n';  //make_dat.cppとDijkstra_5.cppで使う地図の縦と横の長さ

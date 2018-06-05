@@ -40,11 +40,12 @@ struct Drone{
     int x=S_X, y=S_Y, z=S_Z;    //ドローンの現在地の座標
     bool fil[5][5];             //レーザーレンジファインダーより入手した情報を格納 
     bool flag;
+    bool dflag;
     void avoidance();           //緊急回避用プログラム
     void extract();             //地図から端点を抽出する関数
     void Dijkstra();            //Dijkstraによる経路計算をする関数
     void get_map();             //マップ情報の取得
-    void update_fil();          //filを更新し、ドローン周辺の障害物情報を格納
+    void update_fil(dflag);          //filを更新し、ドローン周辺の障害物情報を格納
 
     int shortest_route[MAX_NODE];   //最短経路
     int map[Z][X][Y];               //マップ情報を格納
@@ -832,9 +833,12 @@ void dronego(){
             }
         }
     }
-	
 	//ドローンの位置を更新していく
 	for(int i=0; i<std::abs(movex)+std::abs(movey); i++){
+	    d.dflag=false;
+        if(move[i]==2){
+            d.dflag = true;
+        }
 		
 		d.avoidance();   //進もうとしてる座標が障害物でふさがってたら障害物回避。障害物回避が起こった場合D.flag==1になってる
 		
@@ -888,7 +892,7 @@ void Drone::avoidance(){
                         return;
                     }
                     x -= 1;
-                    //update_fil();
+                    //update_fil(dflag);
                 }else{
                     left = true;
                     break;
@@ -904,7 +908,7 @@ void Drone::avoidance(){
                             return;
                         }
                         x += 1;
-                        //update_fil();
+                        //update_fil(dflag);
                     }else{
                         right = true;
                         break;
@@ -921,7 +925,7 @@ void Drone::avoidance(){
                         return;
                     }
                     x += 1;
-                    //update_fil();
+                    //update_fil(dflag);
                 }else{
                     right = true;
                     break;
@@ -937,7 +941,7 @@ void Drone::avoidance(){
                             return;
                         }
                         x -= 1;
-                        //update_fil();
+                        //update_fil(dflag);
                     }else{
                         left = true;
                         break;
@@ -954,7 +958,7 @@ void Drone::avoidance(){
                     }
                     x -= 1;
                     y += 1;
-                    //update_fil();
+                    //update_fil(dflag);
                 }
             }
         }else if(!fil[0][4] && fil[0][0]){       //右斜め前に障害物なしかつ左斜め前に障害物あり
@@ -965,7 +969,7 @@ void Drone::avoidance(){
                     }
                     x += 1;
                     y += 1;
-                    //update_fil();
+                    //update_fil(dflag);
                 }
             }
         }
@@ -982,7 +986,7 @@ void Drone::avoidance(){
     //         if(chk_wall(D, D.x-1,D.y)){
     //             if(fil[0][0])
     //             D.y -= 1;
-    //             update_fil();
+    //             update_fil(dflag);
     //         }
     //     }
     // }

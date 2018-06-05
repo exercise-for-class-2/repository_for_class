@@ -123,6 +123,7 @@ void avoidance(drone D){
     }else{
         D.flag = false;
     }
+    
     if(left && right){
         D.z += 1;               //階層の変更
         Dijkstra();
