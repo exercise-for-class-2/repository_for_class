@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <time.h>
 #include <iomanip>
-//#include <unistd.h>
+#include <unistd.h>
 
 #define GNPLT "C:/PROGRA~1/gnuplot/bin/gnuplot.exe" 
 #define STRLN 100
@@ -20,10 +20,11 @@
 #define S_Z 0       //startのz座標
 #define G_X 95      //goalのx座標
 #define G_Y 95      //goalのy座標
-#define G_Z 0       //goalのy座標
+#define G_Z 0       //goalのz座標
 #define MAX_COST 10000
 #define MAX_NODE 10000
 #define MAX 10000
+#define SECOND 100000
 
 struct Node{                         //このノードから伸びるエッジの情報
     std::vector<int> edges_to;       //各エッジの接続先のノード番号
@@ -40,12 +41,11 @@ struct Drone{
     int x=S_X, y=S_Y, z=S_Z;    //ドローンの現在地の座標
     bool fil[5][5];             //レーザーレンジファインダーより入手した情報を格納 
     bool flag;
-    bool dflag;
     void avoidance();           //緊急回避用プログラム
     void extract();             //地図から端点を抽出する関数
     void Dijkstra();            //Dijkstraによる経路計算をする関数
     void get_map();             //マップ情報の取得
-    void update_fil(dflag);          //filを更新し、ドローン周辺の障害物情報を格納
+    void update_fil();          //filを更新し、ドローン周辺の障害物情報を格納
 
     int shortest_route[MAX_NODE];   //最短経路
     int map[Z][X][Y];               //マップ情報を格納
@@ -138,6 +138,7 @@ void start_drone(){
     }
     print_route();  //スタートからゴールまでのドローンの軌跡を座標で一つ一つ表示
     std::cout << "\n[OK] Drone arrived at the goal\n";
+    std::cout << "\n[i_route]\n" << i_route << '\n';
 }
 /*--------------------------------------------------------*/
 
@@ -370,9 +371,9 @@ void Drone::Dijkstra(){
         set_goal(node, n, start, &goal);                    /*現在いる階層でのスタートノードとゴールノードを決める. 
                                                             現在の階層から最終的なゴールに到達できない場合のゴールノードの選び方は未定*/
         make_dijkstra(file_dijkstra.str(), node, start, goal, shortest_route);   //startからgoalまでの最短経路を保存
-        print_array(node, n);
-        gnuplot_spc(gnufile_all, gnufile_dijkstra);         //ドローンの軌跡をpngに保存
-        gnuplot_spc(gnufile_edges, gnufile_dijkstra);       //ドローンの軌跡をpngに保存
+        //print_array(node, n);
+        //gnuplot_spc(gnufile_all, gnufile_dijkstra);         //ドローンの軌跡をpngに保存
+        //nuplot_spc(gnufile_edges, gnufile_dijkstra);       //ドローンの軌跡をpngに保存
     }
 }
 
@@ -715,6 +716,7 @@ int gnuplot_spc(char *file1, char *file2){
     fprintf(gp, "set style l 2 lt 1 lc 3 lw 1 pt 5 ps 1\n");
     fprintf(gp, "set ticscale 0\nset xtics 10\nset ytics 10\n");
     fprintf(gp, "set xrange[0:100]\nset yrange[0:100]\n");
+    fprintf(gp, "unset key\n");
     fprintf(gp, "set terminal png\n");
     fprintf(gp, "plot '%s.dat' linestyle 1\n", file1);
     fprintf(gp, "set output '%s.png'\n", file1);
@@ -833,12 +835,9 @@ void dronego(){
             }
         }
     }
+	
 	//ドローンの位置を更新していく
 	for(int i=0; i<std::abs(movex)+std::abs(movey); i++){
-	    d.dflag=false;
-        if(move[i]==2){
-            d.dflag = true;
-        }
 		
 		d.avoidance();   //進もうとしてる座標が障害物でふさがってたら障害物回避。障害物回避が起こった場合D.flag==1になってる
 		
@@ -855,6 +854,7 @@ void dronego(){
             route[i_route][0]=d.x;
             route[i_route][1]=d.y;
             i_route++;
+            //usleep(SECOND);
 		}else if(d.flag==1){//障害物回避が起こった場合
 			break;
 		}
@@ -892,7 +892,7 @@ void Drone::avoidance(){
                         return;
                     }
                     x -= 1;
-                    //update_fil(dflag);
+                    update_fil();
                 }else{
                     left = true;
                     break;
@@ -908,7 +908,7 @@ void Drone::avoidance(){
                             return;
                         }
                         x += 1;
-                        //update_fil(dflag);
+                        update_fil();
                     }else{
                         right = true;
                         break;
@@ -925,7 +925,7 @@ void Drone::avoidance(){
                         return;
                     }
                     x += 1;
-                    //update_fil(dflag);
+                    update_fil();
                 }else{
                     right = true;
                     break;
@@ -941,7 +941,7 @@ void Drone::avoidance(){
                             return;
                         }
                         x -= 1;
-                        //update_fil(dflag);
+                        update_fil();
                     }else{
                         left = true;
                         break;
@@ -958,7 +958,7 @@ void Drone::avoidance(){
                     }
                     x -= 1;
                     y += 1;
-                    //update_fil(dflag);
+                    update_fil();
                 }
             }
         }else if(!fil[0][4] && fil[0][0]){       //右斜め前に障害物なしかつ左斜め前に障害物あり
@@ -969,7 +969,7 @@ void Drone::avoidance(){
                     }
                     x += 1;
                     y += 1;
-                    //update_fil(dflag);
+                    update_fil();
                 }
             }
         }
@@ -986,11 +986,23 @@ void Drone::avoidance(){
     //         if(chk_wall(D, D.x-1,D.y)){
     //             if(fil[0][0])
     //             D.y -= 1;
-    //             update_fil(dflag);
+    //             update_fil();
     //         }
     //     }
     // }
 
+}
+
+void Drone::update_fil(){       //nmap: 障害物情報込みのマップ
+    for(int i=-2;i<3;i++){
+        for(int j=-2;j<3;j++){
+            if(map[x+i][y+i]!=0){
+                fil[i+2][j+2] = true;
+            }else{
+                fil[i+2][j+2] = false;
+            }
+        }
+    }
 }
 /*-----------------------------------------------------------------------------------------------------------*/
 
@@ -1001,6 +1013,7 @@ void print_route(){
     std::cout << "(5, 5)\n";
     for(int i=0; i<i_route; i++){
         std::cout << "(" << route[i][0] << ", " << route[i][1] << ")\n";
+        usleep(SECOND);
     }
 }
 /*----------------------------------------------------------------------------------------------------------*/
