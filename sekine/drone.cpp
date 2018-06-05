@@ -35,6 +35,14 @@ struct Node{                         //このノードから伸びるエッジ�
     double cost = MAX_COST;          //このノードへの現時点で判明している最小コスト
     bool flag = false;               //探索済みか否か
     bool done = false;               //確定ノードか否か
+    void initialize(){               //初期化(使うか否かは未定)
+        edges_to.clear();
+        edges_cost.clear();
+        path = -1;
+        cost = MAX_COST;
+        flag = false;
+        done = false;
+    }
 };
 
 struct Drone{
@@ -42,7 +50,6 @@ struct Drone{
     bool fil[5][5];             //レーザーレンジファインダーより入手した情報を格納 
     bool flag;
     void avoidance();           //緊急回避用プログラム
-    void extract();             //地図から端点を抽出する関数
     void Dijkstra();            //Dijkstraによる経路計算をする関数
     void get_map();             //マップ情報の取得
     void update_fil();          //filを更新し、ドローン周辺の障害物情報を格納
@@ -728,7 +735,7 @@ int gnuplot_spc(char *file1, char *file2){
 
 void print_array(Node node[], int n){
   //各ノード間の距離を表示
-  int label[n];
+  int *label = new int[n];
   for(int i=0; i<n; i++){
       label[i] = 0;
   }
@@ -761,7 +768,7 @@ void print_array(Node node[], int n){
 
   //最短経路を表示
   std::cout << "[Dijkstra rote]\n";
-  int dij[n];
+  int *dij = new int[n];
   int i_d = 0;
   int k = n-1;
   dij[i_d] = k;
@@ -789,7 +796,7 @@ void dronego(){
 	movex = node[d.nextnode].x - d.x;  // movexを算出
 	movey = node[d.nextnode].y - d.y;  // moveyを算出
 	
-	int move[std::abs(movex)+std::abs(movey)];  //端点から端点に進むためにx座標とy座標をいくつずつ,どの順番で増減させるのかを格納.yが1増加するとき(方向で表すと前)は1,yが1減少(後ろ)が2,xが1増加(右)が3,xが1減少(左)が4として対応
+    int *move = new int[std::abs(movex) + std::abs(movey)];   //端点から端点に進むためにx座標とy座標をいくつずつ,どの順番で増減させるのかを格納.yが1増加するとき(方向で表すと前)は1,yが1減少(後ろ)が2,xが1増加(右)が3,xが1減少(左)が4として対応
 	
 	/* 
 		moveの例:右に1,前に1づつ座標(0,0)から(5,5)まで進みたいとき
@@ -797,38 +804,38 @@ void dronego(){
 	*/
 	
 	// ↓moveの格納方法案↓
-	int ycount=0,count=0;  //ycount...yが増減した回数をカウント。  count...xまたはyが増減した回数。最終的にmovex+moveyになるはず
+	int ycount = 0, count = 0;  //ycount...yが増減した回数をカウント。  count...xまたはyが増減した回数。最終的にmovex+moveyになるはず
     double slope;  //今いる端点の座標から次向かう端点の座標への傾き
     if(movex == 0){
         for(int y=1; y<=std::fabs(movey); y++){
-            if(movey>0){
-                move[count]=1;
+            if(movey > 0){
+                move[count] = 1;
                 count++;
             }
-            else if(movey<0){
-                move[count]=2;
+            else if(movey < 0){
+                move[count] = 2;
                 count++;
             }
         }
     }
     else{
-        slope=(double)(movey)/(double)(movex);  //slopeを算出
-        for(int x=1; x<=std::fabs(movex); x++){  //x座標を一回づつ増減、その度にy座標も増減させるか判定
+        slope = (double)(movey) / (double)(movex);  //slopeを算出
+        for(int x=1; x<=std::fabs(movex); x++){     //x座標を一回づつ増減、その度にy座標も増減させるか判定
             //x座標を増減
-            if(movex>0){
-                move[count]=3;
+            if(movex > 0){
+                move[count] = 3;
                 count++;
-            }else if(movex<0){
-                move[count]=4;
+            }else if(movex < 0){
+                move[count] = 4;
                 count++;
             }
             //y座標を増減
-            while(std::fabs(slope)*x>=ycount){  //各xに対してslope*xが1を超えたタイミングでyを1回増減、2を超えたタイミングでyをもう1回増減させたい。3を超えたらさらにもう一回yを...(略)
-                if(movey>0){
-                    move[count]=1;
+            while(std::fabs(slope)*x >= ycount){  //各xに対してslope*xが1を超えたタイミングでyを1回増減、2を超えたタイミングでyをもう1回増減させたい。3を超えたらさらにもう一回yを...(略)
+                if(movey > 0){
+                    move[count] = 1;
                     count++;
-                }else if(movey<0){
-                    move[count]=2;
+                }else if(movey < 0){
+                    move[count] = 2;
                     count++;
                 }
                 ycount++;  //yが増減した回数を増やす
@@ -841,27 +848,26 @@ void dronego(){
 		
 		d.avoidance();   //進もうとしてる座標が障害物でふさがってたら障害物回避。障害物回避が起こった場合D.flag==1になってる
 		
-		if(d.flag==false){//障害物回避が起こらなかった場合
-			if(move[i]==1){
-				d.y+=1;   //前に1進む
-			}else if(move[i]==2){
-				d.y+=-1;  //後ろに1進む
-			}else if(move[i]==3){
-				d.x+=1;   //右に1進む
-			}else if(move[i]==4){
-				d.x+=-1;  //左に1進む
+		if(d.flag == false){//障害物回避が起こらなかった場合
+			if(move[i] == 1){
+				d.y += 1;   //前に1進む
+			}else if(move[i] == 2){
+				d.y += -1;  //後ろに1進む
+			}else if(move[i] == 3){
+				d.x += 1;   //右に1進む
+			}else if(move[i] == 4){
+				d.x += -1;  //左に1進む
 			}
-            route[i_route][0]=d.x;
-            route[i_route][1]=d.y;
+            route[i_route][0] = d.x;
+            route[i_route][1] = d.y;
             i_route++;
-            //usleep(SECOND);
-		}else if(d.flag==1){//障害物回避が起こった場合
+		}else if(d.flag == 1){//障害物回避が起こった場合
 			break;
 		}
 	}
 	
-	if(d.flag==true){  //障害物回避が起こった場合
-		d.flag=false;  //再帰内では障害物回避は起きてないから0に戻す
+	if(d.flag == true){  //障害物回避が起こった場合
+		d.flag = false;  //再帰内では障害物回避は起きてないから0に戻す
 		dronego();    //再帰を使って回避後の地点から目的地の端点に進む
 	}
 }
@@ -880,7 +886,7 @@ bool chk_wall(int map[][Y], int i, int j){
 void Drone::avoidance(){
     flag = true;
     bool right = false, left = false;
-    int nextx,nexty;
+    int nextx, nexty;
     if(fil[2][0] && fil[0][0] && fil[4][0]){        //前方三つのセンサーが反応
         if(fil[4][2]){                              //右に壁判定且つ右に壁はマップに存在しないとき
             while(true){
@@ -1013,7 +1019,7 @@ void print_route(){
     std::cout << "(5, 5)\n";
     for(int i=0; i<i_route; i++){
         std::cout << "(" << route[i][0] << ", " << route[i][1] << ")\n";
-        usleep(SECOND);
+        //usleep(SECOND);
     }
 }
 /*----------------------------------------------------------------------------------------------------------*/
