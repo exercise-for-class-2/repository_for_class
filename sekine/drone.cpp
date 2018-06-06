@@ -735,6 +735,7 @@ int gnuplot_spc(char *file1, char *file2){
 
 void print_array(Node node[], int n){
   //各ノード間の距離を表示
+  //int label[n];
   int *label = new int[n];
   for(int i=0; i<n; i++){
       label[i] = 0;
@@ -749,6 +750,7 @@ void print_array(Node node[], int n){
     }
     label[i] = 1;
   }
+  delete[] label;
   std::cout << '\n';
 
   //各ノードまでのコストを表示
@@ -768,6 +770,7 @@ void print_array(Node node[], int n){
 
   //最短経路を表示
   std::cout << "[Dijkstra rote]\n";
+  //int dij[n];
   int *dij = new int[n];
   int i_d = 0;
   int k = n-1;
@@ -782,6 +785,7 @@ void print_array(Node node[], int n){
     std::cout << dij[i] << " ";
   }
   std::cout << '\n' << '\n';
+  delete[] dij;
 }
 
 /*-------------------------------------------------------------------------------------------------*/
@@ -796,6 +800,7 @@ void dronego(){
 	movex = node[d.nextnode].x - d.x;  // movexを算出
 	movey = node[d.nextnode].y - d.y;  // moveyを算出
 	
+    //int move[std::abs(movex) + std::abs(movey)];
     int *move = new int[std::abs(movex) + std::abs(movey)];   //端点から端点に進むためにx座標とy座標をいくつずつ,どの順番で増減させるのかを格納.yが1増加するとき(方向で表すと前)は1,yが1減少(後ろ)が2,xが1増加(右)が3,xが1減少(左)が4として対応
 	
 	/* 
@@ -870,6 +875,7 @@ void dronego(){
 		d.flag = false;  //再帰内では障害物回避は起きてないから0に戻す
 		dronego();    //再帰を使って回避後の地点から目的地の端点に進む
 	}
+    delete[] move;
 }
 /*----------------------------------------------------------------------------------------------------------*/
 
