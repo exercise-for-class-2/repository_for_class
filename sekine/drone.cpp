@@ -9,6 +9,8 @@
 #include <time.h>
 #include <iomanip>
 #include <unistd.h>
+#include <cstdlib>
+#include <stdlib.h>
 
 #define GNPLT "C:/PROGRA~1/gnuplot/bin/gnuplot.exe" 
 #define STRLN 100
@@ -291,7 +293,7 @@ void output_dat(char *file_all, char *file_edges, int map[][X][Y], int k){
     fp = fopen(file_all, "w");
     if(fp == NULL){
         printf("ERROR\n");
-        exit(1);
+        std::exit(1);
     }
     fprintf(fp, "%d %d\n", S_X, S_Y);
     for(int i=0; i<X; i++){
@@ -308,7 +310,7 @@ void output_dat(char *file_all, char *file_edges, int map[][X][Y], int k){
     fp = fopen(file_edges, "w");
     if(fp == NULL){
         printf("ERROR\n");
-        exit(1);
+        std::exit(1);
     }
     fprintf(fp, "%d %d\n", S_X, S_Y);
     for(int i=0; i<X; i++){
@@ -717,7 +719,7 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y){
 }
 
 int gnuplot_spc(char *file1, char *file2){
-    FILE *gp; if((gp = _popen(GNPLT, "w")) == NULL) { printf("ERR\n"); exit(1); }
+    FILE *gp; if((gp = popen(GNPLT, "w")) == NULL) { printf("ERR\n"); std::exit(1); }
     fprintf(gp, "set size square\nset colorsequence classic\n");
     fprintf(gp, "set style l 1 lt 1 lc 1 lw 1 pt 5 ps 1\n");
     fprintf(gp, "set style l 2 lt 1 lc 3 lw 1 pt 5 ps 1\n");
@@ -730,7 +732,7 @@ int gnuplot_spc(char *file1, char *file2){
     fprintf(gp, "replot '%s.dat' with lp linestyle 2\n", file2);
     //system("pause"); 
     fprintf(gp, "exit\n");
-    return _pclose(gp);
+    return pclose(gp);
 }
 
 void print_array(Node node[], int n){
@@ -750,7 +752,7 @@ void print_array(Node node[], int n){
     }
     label[i] = 1;
   }
-  delete[] label;
+  delete[]label;
   std::cout << '\n';
 
   //各ノードまでのコストを表示
@@ -785,7 +787,7 @@ void print_array(Node node[], int n){
     std::cout << dij[i] << " ";
   }
   std::cout << '\n' << '\n';
-  delete[] dij;
+  delete[]dij;
 }
 
 /*-------------------------------------------------------------------------------------------------*/
@@ -799,9 +801,10 @@ void dronego(){
 	int movex,movey;  //現在地から端点に進むために移動しなきゃいけないx座標の数とy座標の数
 	movex = node[d.nextnode].x - d.x;  // movexを算出
 	movey = node[d.nextnode].y - d.y;  // moveyを算出
+
 	
     //int move[std::abs(movex) + std::abs(movey)];
-    int *move = new int[std::abs(movex) + std::abs(movey)];   //端点から端点に進むためにx座標とy座標をいくつずつ,どの順番で増減させるのかを格納.yが1増加するとき(方向で表すと前)は1,yが1減少(後ろ)が2,xが1増加(右)が3,xが1減少(左)が4として対応
+    int *move = new int[std::abs(movex) + std::abs(movey) + 1];   //端点から端点に進むためにx座標とy座標をいくつずつ,どの順番で増減させるのかを格納.yが1増加するとき(方向で表すと前)は1,yが1減少(後ろ)が2,xが1増加(右)が3,xが1減少(左)が4として対応
 	
 	/* 
 		moveの例:右に1,前に1づつ座標(0,0)から(5,5)まで進みたいとき
@@ -870,12 +873,13 @@ void dronego(){
 			break;
 		}
 	}
+
+    delete[]move;
 	
 	if(d.flag == true){  //障害物回避が起こった場合
 		d.flag = false;  //再帰内では障害物回避は起きてないから0に戻す
 		dronego();    //再帰を使って回避後の地点から目的地の端点に進む
 	}
-    delete[] move;
 }
 /*----------------------------------------------------------------------------------------------------------*/
 
