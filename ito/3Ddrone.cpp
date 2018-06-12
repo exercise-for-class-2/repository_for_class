@@ -118,13 +118,35 @@ void make_dat();
 //d.avoidance()内で用いる壁の判定
 bool chk_wall(int i, int j);
 //droneの軌跡をすべて座標でたどる
-void print_route();
+void input_map(std::string file, int map[][Y], int x, int y);
+
 
 /*--------------------main文---------------------------*/
 void Main() {
 	start_drone();
-	while (System::Update) {
-		print_route();
+	Window::SetStyle(WindowStyle::Sizeable);
+	Camera camera;
+	std::string file1 = "map00.dat";
+	int map[X][Y];
+	input_map(file1, map, X, Y);
+	int i = 0;
+	while (System::Update()) {
+		for(int i=0;i<X;i++){
+			for (int j = 0; j < Y; j++) {
+				if (map[i][j] != 0) {
+					Box(Vec3(i, 0, j), 1).draw();
+				}
+			}
+		}
+		camera.pos = (Vec3(route[i][0]+1, 50, route[i][1]+1));
+		camera.lookat = Vec3(route[i][0], 0, route[i][1]);
+		Graphics3D::SetCamera(camera);
+		Box(Vec3(route[i][0], 0, route[i][1]), 1).draw(Palette::Red);
+		Box(Vec3(G_X, G_Z, G_Y), 3).draw(Palette::Aqua);
+		if (i == i_route) {i=0;}
+		else
+		{i++;}
+		System::Sleep(0.05s);
 	}
 
 }
@@ -150,7 +172,7 @@ void start_drone() {
 			}
 		}
 	}
-	print_route();  //スタートからゴールまでのドローンの軌跡を座標で一つ一つ表示
+	
 }
 /*--------------------------------------------------------*/
 
@@ -515,7 +537,7 @@ void search_node(Node node[], int n, int start) {
 
 int search_confirm_node(Node node[], int n, int *cnt) {
 	int i = MAX_COST, j;
-	int min = MAX_COST;
+	double min = MAX_COST;
 	for (j = 0; j<n; j++) {
 		if ((node[j].flag == true) && (node[j].done == false)) {
 			if (node[j].cost < min) {
@@ -1044,12 +1066,19 @@ void Drone::update_fil() {       //nmap: 障害物情報込みのマップ
 
 
 /*-----------------------------------------その他-----------------------------------------------------------*/
-void print_route() {
-	std::cout << "\n[route]\n";
-	std::cout << "(5, 5)\n";
-	for (int i = 0; i<i_route; i++) {
-		Box(route[i][0]*20,0,route[i][1]*20,20).draw();
-		System::Sleep(0.6s);
+
+/*----------------------------------------------------------------------------------------------------------*/
+void input_map(std::string file, int map[][Y], int x, int y) {
+	std::string str;
+	int tmp;
+	std::ifstream ifile(file.c_str());
+	for (int i = 0; i<x; i++) {
+		std::getline(ifile, str);
+		std::istringstream iss(str);
+		int j = 0;
+		while (iss >> tmp) {
+			map[i][j] = tmp;
+			j++;
+		}
 	}
 }
-/*----------------------------------------------------------------------------------------------------------*/
