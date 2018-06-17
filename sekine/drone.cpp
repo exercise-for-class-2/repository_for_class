@@ -21,9 +21,16 @@
 #define MAX_NODE 10000
 #define MAX 10000
 #define SECOND 100000
+#define ARRAY_LEN(ARR) (sizeof(ARR) / sizeof((ARR)[0]))
 
 int S_X= 5, S_Y= 5, S_Z=0;
 int G_X=85, G_Y=85, G_Z=0;
+
+//初期化のための, テンプレートを用いた関数
+template<typename A, size_t N, typename T>
+void FILL(A (&array)[N], const T &val){
+	std::fill( (T*)array, (T*)(array+N), val);
+}
 
 struct Node {                        //このノードから伸びるエッジの情報
 	std::vector<int> edges_to;       //各エッジの接続先のノード番号
@@ -60,21 +67,18 @@ struct Drone {
 	void Dijkstra();            //Dijkstraによる経路計算をする関数
 	void get_map();             //マップ情報の取得
 	void update_fil();          //filを更新し、ドローン周辺の障害物情報を格納
-	void initialize(){
-		for(int i=0; i<100; i++){
-			start[i] = -1;
-			goal[i] = -1;
-		}
-	}
 };
 
 Node node[MAX_NODE];
 Drone d;
-int route[10][MAX][2];  //gnuplotで使う
-int i_route[10] = {0};  //routeの添え字
-int k_route = 0;
+//bool flag[100][MAX];   //goalに設定されたか否か set_next()で使われる
+int route[100][MAX][2];  //階層移動込みのdroneの軌跡 0:x, 1:y
+int i_route[100];        //routeの添え字真ん中
+int k_route = 0;		 //routeの添え字
+int map_flag[Z][X][Y];	 //goalに設定されたか否か
+std::vector<int> map_flag_i[Z];
 
-						//すべてのプログラムを起動する
+//すべてのプログラムを起動する
 void start_drone();
 //x*x + y*yを返す
 double calc_distance(double x, double y);
@@ -124,7 +128,7 @@ bool chk_wall(int i, int j);
 //droneの軌跡をすべて座標でたどる
 void input_map(std::string file, int map[][Y], int x, int y);
 //次の階層とその階層のstartを決める
-int set_next(int *x, int *y, int *z, int goal);
+int set_next(int *z, int goal);
 //nodeの初期化
 void initialize_node(int n);
 //階層込みの最短経路の表示
@@ -139,7 +143,14 @@ int main(){
 
 /*-------------------start_drone()------------------------*/
 void start_drone() {
-	d.initialize();
+	//初期化
+	//FILL(flag, false);
+	FILL(i_route, 0);
+	FILL(d.start, -1);
+	FILL(d.goal, -1);
+	FILL(map_flag, 0);
+	FILL(map_flag_i, 0);
+
 	d.get_map();
 	d.Dijkstra();
 	d.i_drone = 0;
@@ -401,16 +412,17 @@ void Drone::Dijkstra() {
 		make_node(file_node.str(), map_buffer[i], n); //壁を判定してノードが向かうことのできるノードを保存していく
 		input_edges_cost(n);                          //node間の距離を保存
 		set_start(n, &start[i_drone], &goal[i_drone]);                  //startを決める. 一番初めはゴールも決める
-        std::cout << "[before change]\nstart:" << start[i_drone] << " goal:" << goal[i_drone] << '\n' << '\n';
 		search_node(n, start[i_drone]);                        //スタートから到達可能なすべてのノードへの最小コストと最短経路を保存
-		set_goal(n, &start[i_drone], &goal[i_drone]);                    /*現在いる階層でのスタートノードとゴールノードを決める.
-															現在の階層から最終的なゴールに到達できない場合のゴールノードの選び方は未定*/
+		std::cout << "[before change]\nstart:" << start[i_drone] << " goal:" << goal[i_drone] << '\n' << '\n';
+		set_goal(n, &start[i_drone], &goal[i_drone]);         //現在いる階層でのスタートノードとゴールノードを決める.
+		i = set_next(&z, goal[i_drone]);
         std::cout << "[after change]\nstart:" << start[i_drone] << " goal:" << goal[i_drone] << '\n' << '\n';
 		make_dijkstra(file_dijkstra.str(), start[i_drone], goal[i_drone], shortest_route);   //startからgoalまでの最短経路を保存
 		print_array(n, start[i_drone], goal[i_drone]);
-		gnuplot_spc(gnufile_all, gnufile_dijkstra);         //ドローンの軌跡をpngに保存
-        gnuplot_spc(gnufile_edges, gnufile_dijkstra);       //ドローンの軌跡をpngに保存
-        i = set_next(&x, &y, &z, goal[i_drone]);
+		//gnuplot_spc(gnufile_all, gnufile_dijkstra);         //ドローンの軌跡をpngに保存
+        //gnuplot_spc(gnufile_edges, gnufile_dijkstra);       //ドローンの軌跡をpngに保存
+        x = node[goal[i_drone]].x;
+		y = node[goal[i_drone]].y;
 		initialize_node(n);
 		i_drone++;
 		std::cout << '\n';
@@ -564,13 +576,17 @@ void set_goal(int n, int *start, int *goal) {
 		*goal = n - 1;           //goalは最終的なゴール
 	}
 	else {//現在の階層のstartからでは到達不可能なら
-		  /*次に向かう階層に行くことのできる地点を探してそこをgoalとする*/
-		  /*その決め方は未定. 今は形式的にgoal = n-1としておく*/
-        int i = 1;
-		while (node[(*goal) - i].path == -1) {
+		  //次に向かう階層に行くことのできる地点を探してそこをgoalとする
+		for(int j=0; j<map_flag_i[d.z].size(); j++){
+			map_flag[d.z][node[(*goal)-map_flag_i[d.z][j]].x][node[(*goal)-map_flag_i[d.z][j]].y] = 1;
+		}
+		int i = 1;
+		while ((node[(*goal)-i].path==-1) || map_flag[d.z][node[(*goal)-i].x][node[(*goal)-i].y]==1){
 			i++;
+			std::cout << "wwwwwwww" << i << '\n';
 		}   
 		*goal = n - 1 - i;
+		map_flag_i[d.z].push_back(i);
 	}
 }
 
@@ -579,7 +595,7 @@ void make_dijkstra(std::string file, int start, int goal, int shortest_route[][M
 	int i = goal;
 	int j = 0;
 	int tmp[MAX_NODE];
-	while (i != start) {//goalからstartに戻るまで start node は今は0で固定
+	while (i != start) {//goalからstartに戻るまで
 		tmp[j] = i;
 		j++;
 		ofp << node[i].x << " " << node[i].y << '\n';
@@ -590,9 +606,8 @@ void make_dijkstra(std::string file, int start, int goal, int shortest_route[][M
 	ofp << node[i].x << " " << node[i].y << '\n';
 	ofp.close();
 
-	int k = j;
-	for (int j = 0; j<k; j++) {
-		shortest_route[d.i_drone][j] = tmp[k - j - 1];
+	for (int k = 0; k<j; k++) {
+		shortest_route[d.i_drone][k] = tmp[j - k - 1];
 	}
 }
 
@@ -824,9 +839,7 @@ void print_array(int n, int start, int goal) {
 	delete[]dij;
 }
 
-int set_next(int *x, int *y, int *z, int goal){
-	*x = node[goal].x;
-	*y = node[goal].y;
+int set_next(int *z, int goal){
     if(Z-1 == *z){
         *z = 0;
     }
