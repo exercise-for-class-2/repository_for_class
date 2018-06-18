@@ -1,4 +1,5 @@
 
+#include <Siv3D.hpp>
 #include <iostream>
 #include <cstdio>
 #include <fstream>
@@ -21,15 +22,14 @@
 #define MAX_NODE 10000
 #define MAX 10000
 #define SECOND 100000
-#define ARRAY_LEN(ARR) (sizeof(ARR) / sizeof((ARR)[0]))
 
-int S_X= 5, S_Y= 5, S_Z=0;
-int G_X=85, G_Y=85, G_Z=0;
+int S_X = 5, S_Y = 5, S_Z = 0;
+int G_X = 85, G_Y = 85, G_Z = 0;
 
 //初期化のための, テンプレートを用いた関数
 template<typename A, size_t N, typename T>
-void FILL(A (&array)[N], const T &val){
-	std::fill( (T*)array, (T*)(array+N), val);
+void FILL(A(&array)[N], const T &val) {
+	std::fill((T*)array, (T*)(array + N), val);
 }
 
 struct Node {                        //このノードから伸びるエッジの情報
@@ -52,7 +52,7 @@ struct Node {                        //このノードから伸びるエッジ�
 };
 
 struct Drone {
-	int x=S_X, y=S_Y, z=S_Z;    //ドローンの現在地の座標
+	int x = S_X, y = S_Y, z = S_Z;    //ドローンの現在地の座標
 	bool fil[5][5];             //レーザーレンジファインダーより入手した情報を格納 
 	bool flag;
 	int shortest_route[100][MAX_NODE];//最短経路
@@ -71,7 +71,6 @@ struct Drone {
 
 Node node[MAX_NODE];
 Drone d;
-//bool flag[100][MAX];   //goalに設定されたか否か set_next()で使われる
 int route[100][MAX][2];  //階層移動込みのdroneの軌跡 0:x, 1:y
 int i_route[100];        //routeの添え字真ん中
 int k_route = 0;		 //routeの添え字
@@ -90,15 +89,10 @@ void Node_in(std::string file);
 void search_node(int n, int start);
 //探索済みノードから確定ノードを探す
 int  search_confirm_node(int n, int *cnt);
-//色々std::coutしてくれます
-void print_array(int n, int start, int goal);
 //node.datの各ノードとその向こう先を書き込む関数 file = node2.dat
 void make_node(std::string file, int map[][Y], int n);
 //file = "xy_edges.dat"から, ノードの個数を返す
 int number_of_node(std::string file);
-//gnuplotで描画し画像をpngファイルに保存
-//int gnuplot_spc(std::string ofile1, std::string ofile2);
-int gnuplot_spc(char *file1, char *file2);
 //ノード間の壁の判定
 bool check_wall(int map[][Y], int i_s, int i_g);
 //check_wall()内で使う関数
@@ -124,22 +118,65 @@ void dronego();
 //mapから必要な点をファイルへ書き込む
 void make_dat(int i);
 //d.avoidance()内で用いる壁の判定
-bool chk_wall(int i, int j);
+bool chk_wall(int map[][Y], int i, int j);
 //droneの軌跡をすべて座標でたどる
-void input_map(std::string file, int map[][Y], int x, int y);
+void input_map(std::string file, int map[][Y]);
 //次の階層とその階層のstartを決める
 int set_next(int *z, int goal);
 //nodeの初期化
 void initialize_node(int n);
-//階層込みの最短経路の表示
-void print_route();
 
 /*--------------------main文---------------------------*/
-int main(){
-    start_drone();
-    return 0;
+void Main() {
+	start_drone();
+	Window::SetStyle(WindowStyle::Sizeable);
+	Camera camera;
+	int map[Z][X][Y];
+	for (int k = 0; k < Z; k++) {
+		std::stringstream file_map;
+		file_map << "map" << std::setw(2) << std::setfill('0') << k << ".dat";
+		input_map(file_map.str(), map[k]);
+	}
+	int i_d = 0;
+	int k_d = 0;
+	while (System::Update()) {
+		for (int k = 0; k < Z; k++) {
+			for (int i = 0; i < X; i++) {
+				for (int j = 0; j < Y; j++) {
+					if (map[k][i][j] != 0) {
+						Box(Vec3(i, k * 10, j), 1).draw();
+					}
+				}
+			}
+		}
+		camera.pos = (Vec3(route[k_d][i_d][0] + 1, 50, route[k_d][i_d][1] + 1));
+		camera.lookat = Vec3(route[k_d][i_d][0], 0, route[k_d][i_d][1]);
+		Graphics3D::SetCamera(camera);
+		Box(Vec3(route[k_d][i_d][0], (k_d%Z) * 10, route[k_d][i_d][1]), 1).draw(Palette::Red);
+		Box(Vec3(G_X, G_Z, G_Y), 3).draw(Palette::Aqua);
+		if (i_d == i_route[k_d]) {
+			i_d = 0;
+			k_d++;
+			if (k_d == k_route) {
+				k_d = 0;
+			}
+		}
+		else {
+			i_d++;
+		}
+		System::Sleep(0.05s);
+	}
 }
+// camera.pos = (Vec3(route[i_d][0]+1, 50, route[i_d][1]+1));
+// camera.lookat = Vec3(route[i_d][0], 0, route[i_d][1]);
+// Graphics3D::SetCamera(camera);
+// Box(Vec3(route[i_d][0], 0, route[i_d][1]), 1).draw(Palette::Red);
+// Box(Vec3(G_X, G_Z, G_Y), 3).draw(Palette::Aqua);
+// if (i_d == i_route) {i=0;}
+// else {i_d++;}
+// System::Sleep(0.05s);
 /*-----------------------------------------------------*/
+
 
 /*-------------------start_drone()------------------------*/
 void start_drone() {
@@ -173,17 +210,16 @@ void start_drone() {
 				d.nextnode = -1;
 			}
 		}
-		if(Z-1 == d.z){
-        	d.z = 0;
-    	}
-    	else{
-       		d.z += 1;
-    	}
+		if (Z - 1 == d.z) {
+			d.z = 0;
+		}
+		else {
+			d.z += 1;
+		}
 		d.i_drone++;
 		k_route++;
-		if(d.i_drone == 10){ break;}
+		if (d.i_drone == 10) { break; }
 	}
-	print_route();
 }
 /*--------------------------------------------------------*/
 
@@ -193,9 +229,9 @@ void Drone::get_map() {
 
 	//map1, 2, 3...と複数ある場合の効率的な入れ方が思いつかない
 	for (int k = 0; k<Z; k++) {
-        std::string str;
-	    int tmp;
-        std::stringstream file_map;
+		std::string str;
+		int tmp;
+		std::stringstream file_map;
 		file_map << "map" << std::setw(2) << std::setfill('0') << k << ".dat";
 		std::ifstream ifile(file_map.str().c_str());
 		for (int i = 0; i<X; i++) {
@@ -308,7 +344,7 @@ void initialize_map_buffer(int map_buffer[][X][Y]) {
 
 void output_map(int map_buffer[][X][Y]) {
 	for (int k = 0; k<Z; k++) {
-        std::stringstream file_map_buffer;
+		std::stringstream file_map_buffer;
 		file_map_buffer << "map_buffer" << std::setw(2) << std::setfill('0') << k << ".dat";
 		std::ofstream ofp(file_map_buffer.str().c_str());
 		for (int i = 0; i<X; i++) {
@@ -324,7 +360,7 @@ void output_map(int map_buffer[][X][Y]) {
 void output_dat(char *file_all, char *file_edges, int map[][X][Y], int k) {
 	//file_all
 	FILE *fp;
-	fopen_s(&fp,file_all, "w");
+	fopen_s(&fp, file_all, "w");
 	if (fp == NULL) {
 		printf("ERROR\n");
 		std::exit(1);
@@ -341,7 +377,7 @@ void output_dat(char *file_all, char *file_edges, int map[][X][Y], int k) {
 	fclose(fp);
 
 	//file_edges
-	fopen_s(&fp,file_edges, "w");
+	fopen_s(&fp, file_edges, "w");
 	if (fp == NULL) {
 		printf("ERROR\n");
 		std::exit(1);
@@ -386,17 +422,16 @@ bool check(int k, int i, int j, int map[][X][Y]) {
 
 /*-----------------------------------Drone::Dijkstra()--------------------------------------------------------*/
 void Drone::Dijkstra() {
-    //アドレスの都合上再度行う処理. あまり気にしないで
+	//アドレスの都合上再度行う処理. あまり気にしないで
 	initialize_map_buffer(map_buffer);
 	change_map(map, map_buffer);
 	output_map(map_buffer);
-    int i = 0;
-	while(x!=G_X || y!=G_Y || z!=G_Z){
+	int i = 0;
+	while (x != G_X || y != G_Y || z != G_Z) {
 		make_dat(i);
-        std::stringstream file_map, file_all, file_edges, file_node, file_dijkstra;
-	    char gnufile_all[STRLN], gnufile_edges[STRLN], gnufile_dijkstra[STRLN];
+		std::stringstream file_map, file_all, file_edges, file_node, file_dijkstra;
+		char gnufile_all[STRLN], gnufile_edges[STRLN], gnufile_dijkstra[STRLN];
 		//fileの名前を自動生成
-        std::cout << "z:" << z << '\n';
 		file_map << "map" << std::setw(2) << std::setfill('0') << i << ".dat";
 		file_all << "all" << std::setw(2) << std::setfill('0') << i << ".dat";
 		file_edges << "edges" << std::setw(2) << std::setfill('0') << i << ".dat";
@@ -413,20 +448,14 @@ void Drone::Dijkstra() {
 		input_edges_cost(n);                          //node間の距離を保存
 		set_start(n, &start[i_drone], &goal[i_drone]);                  //startを決める. 一番初めはゴールも決める
 		search_node(n, start[i_drone]);                        //スタートから到達可能なすべてのノードへの最小コストと最短経路を保存
-		std::cout << "[before change]\nstart:" << start[i_drone] << " goal:" << goal[i_drone] << '\n' << '\n';
 		set_goal(n, &start[i_drone], &goal[i_drone]);         //現在いる階層でのスタートノードとゴールノードを決める.
 		i = set_next(&z, goal[i_drone]);
-        std::cout << "[after change]\nstart:" << start[i_drone] << " goal:" << goal[i_drone] << '\n' << '\n';
 		make_dijkstra(file_dijkstra.str(), start[i_drone], goal[i_drone], shortest_route);   //startからgoalまでの最短経路を保存
-		print_array(n, start[i_drone], goal[i_drone]);
-		//gnuplot_spc(gnufile_all, gnufile_dijkstra);         //ドローンの軌跡をpngに保存
-        //gnuplot_spc(gnufile_edges, gnufile_dijkstra);       //ドローンの軌跡をpngに保存
-        x = node[goal[i_drone]].x;
+		x = node[goal[i_drone]].x;
 		y = node[goal[i_drone]].y;
 		initialize_node(n);
 		i_drone++;
-		std::cout << '\n';
-    }
+	}
 }
 
 int number_of_node(std::string file) {
@@ -577,14 +606,13 @@ void set_goal(int n, int *start, int *goal) {
 	}
 	else {//現在の階層のstartからでは到達不可能なら
 		  //次に向かう階層に行くことのできる地点を探してそこをgoalとする
-		for(int j=0; j<map_flag_i[d.z].size(); j++){
-			map_flag[d.z][node[(*goal)-map_flag_i[d.z][j]].x][node[(*goal)-map_flag_i[d.z][j]].y] = 1;
+		for (int j = 0; j<map_flag_i[d.z].size(); j++) {
+			map_flag[d.z][node[(*goal) - map_flag_i[d.z][j]].x][node[(*goal) - map_flag_i[d.z][j]].y] = 1;
 		}
 		int i = 1;
-		while ((node[(*goal)-i].path==-1) || map_flag[d.z][node[(*goal)-i].x][node[(*goal)-i].y]==1){
+		while ((node[(*goal) - i].path == -1) || map_flag[d.z][node[(*goal) - i].x][node[(*goal) - i].y] == 1) {
 			i++;
-			std::cout << "wwwwwwww" << i << '\n';
-		}   
+		}
 		*goal = n - 1 - i;
 		map_flag_i[d.z].push_back(i);
 	}
@@ -606,8 +634,9 @@ void make_dijkstra(std::string file, int start, int goal, int shortest_route[][M
 	ofp << node[i].x << " " << node[i].y << '\n';
 	ofp.close();
 
-	for (int k = 0; k<j; k++) {
-		shortest_route[d.i_drone][k] = tmp[j - k - 1];
+	int k = j;
+	for (int j = 0; j<k; j++) {
+		shortest_route[d.i_drone][j] = tmp[k - j - 1];
 	}
 }
 
@@ -767,91 +796,19 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y) {
 	}
 }
 
-int gnuplot_spc(char *file1, char *file2) {
-	FILE *gp; if((gp = _popen(GNPLT, "w")) == NULL) { printf("ERR\n"); exit(1); }
-	fprintf(gp, "set size square\nset colorsequence classic\n");
-	fprintf(gp, "set style l 1 lt 1 lc 1 lw 1 pt 5 ps 1\n");
-	fprintf(gp, "set style l 2 lt 1 lc 3 lw 1 pt 5 ps 1\n");
-	fprintf(gp, "set ticscale 0\nset xtics 10\nset ytics 10\n");
-	fprintf(gp, "set xrange[0:100]\nset yrange[0:100]\n");
-	fprintf(gp, "unset key\n");
-	fprintf(gp, "set terminal png\n");
-	fprintf(gp, "plot '%s.dat' linestyle 1\n", file1);
-	fprintf(gp, "set output '%s.png'\n", file1);
-	fprintf(gp, "replot '%s.dat' with lp linestyle 2\n", file2);
-	//system("pause"); 
-	fprintf(gp, "exit\n");
-	return fclose(gp);
+int set_next(int *z, int goal) {
+	if (Z - 1 == *z) {
+		*z = 0;
+	}
+	else {
+		*z += 1;
+	}
+	int i = *z;
+	return i;
 }
 
-void print_array(int n, int start, int goal) {
-	//各ノード間の距離を表示
-	//int label[n];
-	int *label = new int[n];
+void initialize_node(int n) {
 	for (int i = 0; i<n; i++) {
-		label[i] = 0;
-	}
-	std::cout << "[distance between nodes]\n";
-	for (int i = 0; i<n; i++) {
-		int n_edges = node[i].edges_to.size();
-		for (int j = 0; j<n_edges; j++) {
-			if (label[node[i].edges_to[j]] == 0) {
-				std::cout << i << "-" << node[i].edges_to[j] << " : " << node[i].edges_cost[j] << '\n';
-			}
-		}
-		label[i] = 1;
-	}
-	delete[]label;
-	std::cout << '\n';
-
-	//各ノードまでのコストを表示
-	std::cout << "[cost of nodes]\n";
-	for (int i = 0; i<n; i++) {
-		std::cout << "node:" << i << "(" << node[i].x << "," << node[i].y << ") ";
-		std::cout << " cost:" << node[i].cost << '\n';
-	}
-	std::cout << '\n';
-
-	//各ノードに入ってくるノード
-	std::cout << "[path]\n";
-	for (int i = 0; i<n; i++) {
-		std::cout << i << "-" << node[i].path << '\n';
-	}
-	std::cout << '\n';
-
-	//最短経路を表示
-	std::cout << "[Dijkstra rote]\n";
-	//int dij[n];
-	int *dij = new int[n];
-	int i_d = start;
-	int k = goal;
-	dij[i_d] = k;
-	i_d += 1;
-	while (k != 0) {
-		dij[i_d] = node[k].path;
-		i_d += 1;
-		k = node[k].path;
-	}
-	for (int i = i_d - 1; i >= 0; i--) {
-		std::cout << dij[i] << " ";
-	}
-	std::cout << '\n' << '\n';
-	delete[]dij;
-}
-
-int set_next(int *z, int goal){
-    if(Z-1 == *z){
-        *z = 0;
-    }
-    else{
-        *z += 1;
-    }
-    int i = *z;
-    return i;
-}
-
-void initialize_node(int n){
-	for(int i=0; i<n; i++){
 		node[i].initialize();
 	}
 }
@@ -1108,11 +1065,11 @@ void Drone::update_fil() {       //nmap: 障害物情報込みのマップ
 /*-----------------------------------------その他-----------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------------------------------------*/
-void input_map(std::string file, int map[][Y], int x, int y) {
+void input_map(std::string file, int map[][Y]) {
 	std::string str;
 	int tmp;
 	std::ifstream ifile(file.c_str());
-	for (int i = 0; i<x; i++) {
+	for (int i = 0; i<X; i++) {
 		std::getline(ifile, str);
 		std::istringstream iss(str);
 		int j = 0;
@@ -1120,15 +1077,5 @@ void input_map(std::string file, int map[][Y], int x, int y) {
 			map[i][j] = tmp;
 			j++;
 		}
-	}
-}
-
-void print_route(){
-	for(int k=0; k<k_route; k++){
-		std::cout << "[k=" << k << "]\n";
-		for(int i=0; i<i_route[k]; i++){
-			std::cout << "(" << route[k][i][0] << ", " << route[k][i][1] << ")\n";
-		}
-		std::cout << '\n';
 	}
 }
