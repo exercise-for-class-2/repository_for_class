@@ -1,4 +1,5 @@
 
+#include <Siv3D.hpp>
 #include <iostream>
 #include <cstdio>
 #include <fstream>
@@ -69,7 +70,7 @@ Node node[MAX_Z][MAX_NODE];         //node
 Drone d;                            //drone
 int map_flag[Z][X][Y];	            //過去にgoalに設定されたか否か
 std::vector<int> map_flag_i[Z];     //過去にgoalに設定されたノードを保存
-int i_gnu = 0;                      //gnuplotで使うカウンタ
+
 
 void start_drone();                                                         //すべてのプログラムを起動する
 double calc_distance(double x, double y);                                   //x*x + y*yを返す
@@ -82,8 +83,6 @@ int number_of_node(std::string file);                                       //fi
 bool check_wall(int map[][Y], int i_s, int i_g);                            //ノード間の壁の判定
 bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y);     //check_wall()内で使う関数
 void make_dijkstra(std::string file, int start, int goal);                  //dijkstra経路を図示するためのファイル書き込み
-void print_array(int n, int start, int goal);                               //色々std::coutしてくれます
-int gnuplot_spc(char *file1, char *file2);                                  //gnuplotで描画し画像をpngファイルに保存
 void set_goal(int n, int *start, int *goal);                                //startとgoalのノードを保存
 void set_start(int n, int *strat, int *goal);                               //startを決める. 一番初めはgoalも決める
 bool check(int k, int i, int j, int map[][X][Y]);                           //端点を判定する関数. 端点ならばtrueを返す
@@ -96,12 +95,51 @@ void make_dat(int i);                                                       //ma
 bool chk_wall(int i, int j);                                                //d.avoidance()内で用いる壁の判定
 void input_map(std::string file, int map[][Y], int x, int y);               //map情報をmap[X][Y]に格納
 int set_next(int *z);                                                       //次の階層を決める
-void print_route();                                                         //階層込みの最短経路の表示
 
 /*-------------------------------------main文-----------------------------------------*/
-int main(){
-    start_drone();
-    return 0;
+void Main() {
+	start_drone();
+	Window::SetStyle(WindowStyle::Sizeable);
+	Camera camera;
+	int map[Z][X][Y];
+	for (int k = 0; k < Z; k++) {
+		std::stringstream file_map;
+		file_map << "map" << std::setw(2) << std::setfill('0') << k << ".dat";
+		input_map(file_map.str(), map[k]);
+	}
+	int i_d = 0;
+	int k_d = 0;
+	//const Font font(30);
+	while (System::Update()) {
+		for (int k = 0; k < Z; k++) {
+			for (int i = 0; i < X; i++) {
+				for (int j = 0; j < Y; j++) {
+					if (map[k][i][j] != 0) {
+						if(k==0){ Box(Vec3(i, k * 10, j), 1).draw(Palette::Cyan); }
+						else { Box(Vec3(i, k * 10, j), 1).draw(Palette::Red); }
+					}
+				}
+			}
+		}
+		camera.pos = (Vec3(route[k_d][i_d].x + 1, 50, route[k_d][i_d].y + 1));
+		camera.lookat = Vec3(route[k_d][i_d].x, 0, route[k_d][i_d].y);
+		Graphics3D::SetCamera(camera);
+		if(k_d%Z==0){ Box(Vec3(route[k_d][i_d].x, (k_d%Z) * 10, route[k_d][i_d].y), 1).draw(Palette::Cyan); }
+		else { Box(Vec3(route[k_d][i_d].x, (k_d%Z) * 10, route[k_d][i_d].y), 1).draw(Palette::Red); }
+		Box(Vec3(G_X, G_Z, G_Y), 3).draw(Palette::Aqua);
+		//font(L"({},{})"_fmt, route[k_d][i_d][0], route[k_d][i_d][1]).draw();
+		if (i_d == (int)route[k_d].size()) {
+			i_d = 0;
+			k_d++;
+			if (k_d == k_route) {
+				k_d = 0;
+			}
+		}
+		else {
+			i_d++;
+		}
+		System::Sleep(0.05s);
+	}
 }
 /*-----------------------------------------------------------------------------------*/
 
@@ -143,7 +181,6 @@ void start_drone() {
 		k_route++;
 		if(d.i == MAX_Z){ break;}
 	}
-    print_route();
 }
 /*--------------------------------------------------------*/
 
@@ -373,8 +410,6 @@ void Drone::Dijkstra() {
 		search_node(n, start[i]);                               //スタートから到達可能なすべてのノードへの最小コストと最短経路を保存
 		set_goal(n, &start[i], &goal[i]);                       //現在いる階層でのスタートノードとゴールノードを決める.
 		make_dijkstra(file_dijkstra.str(), start[i], goal[i]);  //startからgoalまでの最短経路を保存
-        //print_array(n, start[i], goal[i]);                      //色々std::coutしてくれます
-        gnuplot_spc(gnufile_all, gnufile_dijkstra);             //gnuplotで描画し画像をpngファイルに保存
         x = node[i][goal[i]].x;                                 //d.xを更新
 		y = node[i][goal[i]].y;                                 //d.yを更新
 		i++;                                                    //d.iをインクリメント
@@ -463,6 +498,7 @@ void set_start(int n, int *start, int *goal) {
 
 void search_node(int n, int start) {
 	int cnt = 0;            //sになったらすべて探索済み
+	int n_max;
 	int i = start;
 	int j = 0;
 	int n_edges_to = node[d.i][i].edges_to.size();
@@ -529,8 +565,7 @@ void set_goal(int n, int *start, int *goal) {
 	}
 	else {//現在の階層のstartからでは到達不可能なら
 		  //次に向かう階層に行くことのできる地点を探してそこをgoalとする
-        int len = map_flag_i[d.z].size();
-		for(int j=0; j<len; j++){
+		for(int j=0; j<map_flag_i[d.z].size(); j++){
 			map_flag[d.z][node[d.i][(*goal)-map_flag_i[d.z][j]].x][node[d.i][(*goal)-map_flag_i[d.z][j]].y] = 1;
 		}
 		int i = 1;
@@ -720,80 +755,6 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y) {
 	}
 }
 
-int gnuplot_spc(char *file1, char *file2) {
-	FILE *gp; if((gp = _popen(GNPLT, "w")) == NULL) { printf("ERR\n"); exit(1); }
-	fprintf(gp, "set size square\nset colorsequence classic\n");
-	fprintf(gp, "set style l 1 lt 1 lc 1 lw 1 pt 5 ps 1\n");
-	fprintf(gp, "set style l 2 lt 1 lc 3 lw 1 pt 5 ps 1\n");
-	fprintf(gp, "set ticscale 0\nset xtics 10\nset ytics 10\n");
-	fprintf(gp, "set xrange[0:100]\nset yrange[0:100]\n");
-	fprintf(gp, "unset key\n");
-	fprintf(gp, "set terminal png\n");
-	fprintf(gp, "plot '%s.dat' linestyle 1\n", file1);
-	fprintf(gp, "set output '%s_%d.png'\n", file1, i_gnu);
-	fprintf(gp, "replot '%s.dat' with lp linestyle 2\n", file2);
-	//system("pause"); 
-	fprintf(gp, "exit\n");
-    i_gnu++;
-	return fclose(gp);
-}
-
-void print_array(int n, int start, int goal) {
-	/*
-	//各ノード間の距離を表示
-	//int label[n];
-	int *label = new int[n];
-	for (int i = 0; i<n; i++) {
-		label[i] = 0;
-	}
-	std::cout << "[distance between nodes]\n";
-	for (int i = 0; i<n; i++) {
-		int n_edges = node[d.i][i].edges_to.size();
-		for (int j = 0; j<n_edges; j++) {
-			if (label[node[d.i][i].edges_to[j]] == 0) {
-				std::cout << i << "-" << node[d.i][i].edges_to[j] << " : " << node[d.i][i].edges_cost[j] << '\n';
-			}
-		}
-		label[i] = 1;
-	}
-	delete[]label;
-	std::cout << '\n';
-
-	//各ノードまでのコストを表示
-	std::cout << "[cost of nodes]\n";
-	for (int i = 0; i<n; i++) {
-		std::cout << "node:" << i << "(" << node[d.i][i].x << "," << node[d.i][i].y << ") ";
-		std::cout << " cost:" << node[d.i][i].cost << '\n';
-	}
-	std::cout << '\n';
-
-	//各ノードに入ってくるノード
-	std::cout << "[path]\n";
-	for (int i = 0; i<n; i++) {
-		std::cout << i << "-" << node[d.i][i].path << '\n';
-	}
-	std::cout << '\n';
-	*/
-	//最短経路を表示
-	std::cout << "[Dijkstra rote]\n";
-	//int dij[n];
-	int *dij = new int[n];
-	int i_d = start;
-	int k = goal;
-	dij[i_d] = k;
-	i_d += 1;
-	while (k != 0) {
-		dij[i_d] = node[d.i][k].path;
-		i_d += 1;
-		k = node[d.i][k].path;
-	}
-	for (int i = i_d - 1; i >= 0; i--) {
-		std::cout << dij[i] << " ";
-	}
-	std::cout << '\n' << '\n';
-	delete[]dij;
-}
-
 int set_next(int *z){
     if(Z-1 == *z){
         *z = 0;
@@ -911,6 +872,7 @@ bool chk_wall(int map[][Y], int i, int j) {
 void Drone::avoidance() {
 	flag = true;
 	bool right = false, left = false;
+	int nextx, nexty;
 	if (fil[2][0] && fil[0][0] && fil[4][0]) {        //前方三つのセンサーが反応
 		if (fil[4][2]) {                              //右に壁判定且つ右に壁はマップに存在しないとき
 			while (true) {
