@@ -359,22 +359,22 @@ void Drone::Dijkstra() {
 		file_all << "all" << std::setw(2) << std::setfill('0') << z_now << ".dat";
 		file_edges << "edges" << std::setw(2) << std::setfill('0') << z_now << ".dat";
 		file_node << "node" << std::setw(2) << std::setfill('0') << z_now << ".dat";
-		file_dijkstra << "dijkstra" << std::setw(2) << std::setfill('0') << z_now << ".dat";
+		file_dijkstra << "dijkstra" << std::setw(2) << std::setfill('0') << i << ".dat";
 		sprintf_s(gnufile_all, "all%02d", z_now);
 		sprintf_s(gnufile_edges, "edges%02d", z_now);
-		sprintf_s(gnufile_dijkstra, "dijkstra%02d", z_now);
+		sprintf_s(gnufile_dijkstra, "dijkstra%02d", i);
 
 		//ここからDijkstra法スタート
 		int n = number_of_node(file_edges.str());               //node(端点)の総数
 		Node_in(file_edges.str());                              //端点をノードとしてnode[]に保存
-		make_node(file_node.str(), map_buffer[i], n);           //壁を判定してノードが向かうことのできるノードを保存していく
+		make_node(file_node.str(), map_buffer[z_now], n);       //壁を判定してノードが向かうことのできるノードを保存していく
 		input_edges_cost(n);                                    //node間の距離を保存
 		set_start(n, &start[i], &goal[i]);                      //startを決める. 一番初めはゴールも決める
 		search_node(n, start[i]);                               //スタートから到達可能なすべてのノードへの最小コストと最短経路を保存
 		set_goal(n, &start[i], &goal[i]);                       //現在いる階層でのスタートノードとゴールノードを決める.
 		make_dijkstra(file_dijkstra.str(), start[i], goal[i]);  //startからgoalまでの最短経路を保存
-        //print_array(n, start[i], goal[i]);                      //色々std::coutしてくれます
-        gnuplot_spc(gnufile_all, gnufile_dijkstra);             //gnuplotで描画し画像をpngファイルに保存
+        print_array(n, start[i], goal[i]);                      //色々std::coutしてくれます
+        //gnuplot_spc(gnufile_all, gnufile_dijkstra);             //gnuplotで描画し画像をpngファイルに保存
         x = node[i][goal[i]].x;                                 //d.xを更新
 		y = node[i][goal[i]].y;                                 //d.yを更新
 		i++;                                                    //d.iをインクリメント
