@@ -985,27 +985,36 @@ void Drone::avoidance() {
 }
 
 void Drone::update_fil() {       //nmap: 障害物情報込みのマップ
-	    if(!dflag){
-        for(int i=-2;i<3;i++){
-            for(int j=-2;j<3;j++){
-                if(nmap[z][x+i][y+i]!=0){
-                    fil[i+2][j+2] = true;
-                }else{
-                    fil[i+2][j+2] = false;
-                }
-            }
-        }
-    }else{
-        for(int i=0;i<5;i++){
-            for(int j=0;j<5j++){
-                if(nmap[z][x+i-2][y+i-2]!=0){
-                    fil[4-i][4-j] = true;
-                }else{
-                    fil[4-i][4-j] = false;
-                }
-            }
-        }
-    }
+	//     if(!dflag){
+    //     for(int i=-2;i<3;i++){
+    //         for(int j=-2;j<3;j++){
+    //             if(nmap[z][x+i][y+i]!=0){
+    //                 fil[i+2][j+2] = true;
+    //             }else{
+    //                 fil[i+2][j+2] = false;
+    //             }
+    //         }
+    //     }
+    // }else{
+    //     for(int i=0;i<5;i++){
+    //         for(int j=0;j<5j++){
+    //             if(nmap[z][x+i-2][y+i-2]!=0){
+    //                 fil[4-i][4-j] = true;
+    //             }else{
+    //                 fil[4-i][4-j] = false;
+    //             }
+    //         }
+    //     }
+    // }
+	for(int i=-2;i<3;i++){
+		for(int j=-2;j<3;j++){
+			if(map[x+ii][y+ii]!=0){
+				fil[ii+2][j+2] = true;
+			}else{
+				fil[ii+2][j+2] = false;
+			}
+		}
+	}
 }
 /*-----------------------------------------------------------------------------------------------------------*/
 
