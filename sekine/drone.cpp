@@ -159,7 +159,7 @@ void start_drone() {
 	d.z = S_Z;
 
 	while (d.x != G_X || d.y != G_Y || d.z != G_Z) {
-		std::cout << "i_drone:" << d.i_drone << '\n';
+		//std::cout << "i_drone:" << d.i_drone << '\n';
 		int z_now = d.z;    //現在の階層
 		int i = 1;          //d.shortest_routeのi番目のnode
 		d.nextnode = d.shortest_route[d.i_drone][i];
@@ -222,8 +222,8 @@ void make_dat(int i) {
 	output_map(d.map_buffer);
 	char file_all[STRLN];
 	char file_edges[STRLN];
-	sprintf_s(file_all, "all%02d.dat", i);
-	sprintf_s(file_edges, "edges%02d.dat", i);
+	sprintf(file_all, "all%02d.dat", i);
+	sprintf(file_edges, "edges%02d.dat", i);
 	output_dat(file_all, file_edges, d.map_buffer, i);
 }
 
@@ -324,7 +324,7 @@ void output_map(int map_buffer[][X][Y]) {
 void output_dat(char *file_all, char *file_edges, int map[][X][Y], int k) {
 	//file_all
 	FILE *fp;
-	fopen_s(&fp,file_all, "w");
+	fp = fopen(file_all, "w");
 	if (fp == NULL) {
 		printf("ERROR\n");
 		std::exit(1);
@@ -341,7 +341,7 @@ void output_dat(char *file_all, char *file_edges, int map[][X][Y], int k) {
 	fclose(fp);
 
 	//file_edges
-	fopen_s(&fp,file_edges, "w");
+	fp = fopen(file_edges, "w");
 	if (fp == NULL) {
 		printf("ERROR\n");
 		std::exit(1);
@@ -396,15 +396,15 @@ void Drone::Dijkstra() {
         std::stringstream file_map, file_all, file_edges, file_node, file_dijkstra;
 	    char gnufile_all[STRLN], gnufile_edges[STRLN], gnufile_dijkstra[STRLN];
 		//fileの名前を自動生成
-        std::cout << "z:" << z << '\n';
+        //std::cout << "z:" << z << '\n';
 		file_map << "map" << std::setw(2) << std::setfill('0') << i << ".dat";
 		file_all << "all" << std::setw(2) << std::setfill('0') << i << ".dat";
 		file_edges << "edges" << std::setw(2) << std::setfill('0') << i << ".dat";
 		file_node << "node" << std::setw(2) << std::setfill('0') << i << ".dat";
 		file_dijkstra << "dijkstra" << std::setw(2) << std::setfill('0') << i << ".dat";
-		sprintf_s(gnufile_all, "all%02d", i);
-		sprintf_s(gnufile_edges, "edges%02d", i);
-		sprintf_s(gnufile_dijkstra, "dijkstra%02d", i);
+		sprintf(gnufile_all, "all%02d", i);
+		sprintf(gnufile_edges, "edges%02d", i);
+		sprintf(gnufile_dijkstra, "dijkstra%02d", i);
 
 		//ここからDijkstra法スタート
 		int n = number_of_node(file_edges.str());           //node(端点)の総数
@@ -413,10 +413,10 @@ void Drone::Dijkstra() {
 		input_edges_cost(n);                          //node間の距離を保存
 		set_start(n, &start[i_drone], &goal[i_drone]);                  //startを決める. 一番初めはゴールも決める
 		search_node(n, start[i_drone]);                        //スタートから到達可能なすべてのノードへの最小コストと最短経路を保存
-		std::cout << "[before change]\nstart:" << start[i_drone] << " goal:" << goal[i_drone] << '\n' << '\n';
+		//std::cout << "[before change]\nstart:" << start[i_drone] << " goal:" << goal[i_drone] << '\n' << '\n';
 		set_goal(n, &start[i_drone], &goal[i_drone]);         //現在いる階層でのスタートノードとゴールノードを決める.
 		i = set_next(&z, goal[i_drone]);
-        std::cout << "[after change]\nstart:" << start[i_drone] << " goal:" << goal[i_drone] << '\n' << '\n';
+        //std::cout << "[after change]\nstart:" << start[i_drone] << " goal:" << goal[i_drone] << '\n' << '\n';
 		make_dijkstra(file_dijkstra.str(), start[i_drone], goal[i_drone], shortest_route);   //startからgoalまでの最短経路を保存
 		print_array(n, start[i_drone], goal[i_drone]);
 		//gnuplot_spc(gnufile_all, gnufile_dijkstra);         //ドローンの軌跡をpngに保存
@@ -425,7 +425,7 @@ void Drone::Dijkstra() {
 		y = node[goal[i_drone]].y;
 		initialize_node(n);
 		i_drone++;
-		std::cout << '\n';
+		//std::cout << '\n';
     }
 }
 
@@ -583,7 +583,7 @@ void set_goal(int n, int *start, int *goal) {
 		int i = 1;
 		while ((node[(*goal)-i].path==-1) || map_flag[d.z][node[(*goal)-i].x][node[(*goal)-i].y]==1){
 			i++;
-			std::cout << "wwwwwwww" << i << '\n';
+			//std::cout << "wwwwwwww" << i << '\n';
 		}   
 		*goal = n - 1 - i;
 		map_flag_i[d.z].push_back(i);
@@ -768,7 +768,7 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y) {
 }
 
 int gnuplot_spc(char *file1, char *file2) {
-	FILE *gp; if((gp = _popen(GNPLT, "w")) == NULL) { printf("ERR\n"); exit(1); }
+	FILE *gp; if((gp = popen(GNPLT, "w")) == NULL) { printf("ERR\n"); exit(1); }
 	fprintf(gp, "set size square\nset colorsequence classic\n");
 	fprintf(gp, "set style l 1 lt 1 lc 1 lw 1 pt 5 ps 1\n");
 	fprintf(gp, "set style l 2 lt 1 lc 3 lw 1 pt 5 ps 1\n");
@@ -791,37 +791,37 @@ void print_array(int n, int start, int goal) {
 	for (int i = 0; i<n; i++) {
 		label[i] = 0;
 	}
-	std::cout << "[distance between nodes]\n";
+	//std::cout << "[distance between nodes]\n";
 	for (int i = 0; i<n; i++) {
 		int n_edges = node[i].edges_to.size();
 		for (int j = 0; j<n_edges; j++) {
 			if (label[node[i].edges_to[j]] == 0) {
-				std::cout << i << "-" << node[i].edges_to[j] << " : " << node[i].edges_cost[j] << '\n';
+				//std::cout << i << "-" << node[i].edges_to[j] << " : " << node[i].edges_cost[j] << '\n';
 			}
 		}
 		label[i] = 1;
 	}
 	delete[]label;
-	std::cout << '\n';
+	//std::cout << '\n';
 
 	//各ノードまでのコストを表示
-	std::cout << "[cost of nodes]\n";
+	//std::cout << "[cost of nodes]\n";
 	for (int i = 0; i<n; i++) {
-		std::cout << "node:" << i << "(" << node[i].x << "," << node[i].y << ") ";
-		std::cout << " cost:" << node[i].cost << '\n';
+		//std::cout << "node:" << i << "(" << node[i].x << "," << node[i].y << ") ";
+		//std::cout << " cost:" << node[i].cost << '\n';
 	}
-	std::cout << '\n';
+	//std::cout << '\n';
 
 	//各ノードに入ってくるノード
-	std::cout << "[path]\n";
+	//std::cout << "[path]\n";
 	for (int i = 0; i<n; i++) {
-		std::cout << i << "-" << node[i].path << '\n';
+		//std::cout << i << "-" << node[i].path << '\n';
 	}
-	std::cout << '\n';
+	//std::cout << '\n';
 
 	//最短経路を表示
 	std::cout << "[Dijkstra rote]\n";
-	//int dij[n];
+	// int dij[n];
 	int *dij = new int[n];
 	int i_d = start;
 	int k = goal;
@@ -867,6 +867,7 @@ void dronego() {
 	int movex, movey;  //現在地から端点に進むために移動しなきゃいけないx座標の数とy座標の数
 	movex = node[d.nextnode].x - d.x;  // movexを算出
 	movey = node[d.nextnode].y - d.y;  // moveyを算出
+	std::cout << "MMMMMMMMMMMMMMMMMMMMMMMMMMMMOVE" << movex << " " << movey << "\n";
 
 
 									   //int move[std::abs(movex) + std::abs(movey)];
@@ -939,6 +940,7 @@ void dronego() {
 			}
 			route[k_route][i_route[k_route]][0] = d.x;
 			route[k_route][i_route[k_route]][1] = d.y;
+			std::cout << "RRRRRRRRRRRR " << d.x << " " << d.y << "\n";
 			i_route[k_route]++;
 		}
 		else if (d.flag == 1) {//障害物回避が起こった場合
