@@ -133,6 +133,12 @@ class INPUT_CHECK : public MyApp::Scene //入力が正しいか確認するシ�
 			m_data->font(L"属性数",m_data->cnum,L" 横幅：", m_data->x, L" 縦幅：", m_data->y).draw(0, 30,Palette::Black); //共通データのfontに従って文字を表示する。
 			if (Yes.leftClicked) //Yesが左クリックされた場合
 			{
+				for (int i = 20; i < m_data->x+20; i++) { //mapの周りを壁で囲う
+					for (int j = 20; j < m_data->y+20; j++) {
+						if (i == 20 || i == m_data->x+20 - 1 || j == 20 || j == m_data->y+20 - 1)
+							m_data->map[i][j] = 1;
+					}
+				}
 				changeScene(L"MAKE_MAP");
 			}
 			else if (No.leftClicked) //Noが左クリックされた場合
@@ -144,9 +150,10 @@ class INPUT_CHECK : public MyApp::Scene //入力が正しいか確認するシ�
 
 class MAKE_MAP : public MyApp::Scene //mapを作るシーン
 {
+
 	public:
-		int x_base = 0; //xの基座標を定義する。
-		int y_base = 0; //yの基座標を定義する。
+		int x_base = -40; //xの基座標を定義する。
+		int y_base = -40; //yの基座標を定義する。
 		int over_i;
 		int over_j;
 		Font cfont{ 10 }; //マス内の文字のFontを定義する。
@@ -158,9 +165,10 @@ class MAKE_MAP : public MyApp::Scene //mapを作るシーン
 		}
 		void update() //シーンの間は、この中をループする。
 		{
-			for (int i = 0; i < m_data->x; i++) //共通データのxまでiを回す。
+
+			for (int i = 20; i < m_data->x+20; i++) //共通データのxまでiを回す。
 			{
-				for (int j = 0; j < m_data->y; j++) //共通データのyまでjを回す。
+				for (int j = 20; j < m_data->y+20; j++) //共通データのyまでjを回す。
 				{
 					Rect rect(i * 20+x_base, j * 20+y_base, 20, 20); //mapを表す長方形を定義する。
 					if (rect.leftClicked) // rectが左クリックされた場合
@@ -171,11 +179,45 @@ class MAKE_MAP : public MyApp::Scene //mapを作るシーン
 					{
 						m_data->map[i][j] += m_data->cnum-1;
 					}
-
+					
+					if (Input::KeyW.pressed&& rect.leftClicked) {
+					for (int k = 0; k < 10; k++) {
+					m_data->map[i][j - k]+=1;
+					}
+					m_data->map[i][j] += m_data->cnum - 1;
+					}
+					if (Input::KeyS.pressed && rect.leftClicked){
+					for (int k = 0; k < 10; k++) {
+					m_data->map[i][j + k]+=1;
+					}
+					m_data->map[i][j] += m_data->cnum - 1;
+					}
+					if (Input::KeyD.pressed && rect.leftClicked) {
+					for (int k = 0; k < 10; k++) {
+					m_data->map[i+k][j]+=1;
+					}
+					m_data->map[i][j] += m_data->cnum - 1;
+					}
+					if (Input::KeyA.pressed && rect.leftClicked) {
+					for (int k = 0; k <10; k++) {
+					m_data->map[i-k][j]+=1;
+					}
+					m_data->map[i][j] += m_data->cnum - 1;
+					}
+					
+					if (Input::KeyB.pressed&& rect.leftClicked) {
+					for (int k = -5; k < 5; k++) {
+					for (int l = -5; l < 5; l++) {
+							m_data->map[i + k][j + l] += 1;
+						}
+						}
+					m_data->map[i][j] += m_data->cnum - 1;
+					}
+					
 					if (rect.mouseOver)
 					{
-						over_i = i;
-						over_j = j;
+						over_i = i-20;
+						over_j = j-20;
 					}
 					int c = m_data->map[i][j] % m_data->cnum; //共通データのmap[i][j]を属性数で割った余りを定義する。
 					const Color color(c != 0 ? HSV(360/c) : HSV(0,0,0)); //クリック回数によって変化する色を定義する。
@@ -241,7 +283,7 @@ class CHECK_MAP : public MyApp::Scene //mapの完成を確認するシーン
 			}
 			else if (No.leftClicked) //Noが左クリックされた場合
 			{
-				changeScene(L"MAKE_MAP"); //シーン"INPUT_CHECK"に移動する。
+				changeScene(L"MAKE_MAP"); //シーン"MAKE_MAP"に移動する。
 			}
 		}
 };
@@ -249,22 +291,26 @@ class CHECK_MAP : public MyApp::Scene //mapの完成を確認するシーン
 class FINAL : public MyApp::Scene //もう一度マップを作るか確認するシーン
 {
 public:
-	RoundRect Yes{ 100, 90, 100, 50,4 }; //Yesボタンに使う丸角長方形を定義する。
-	RoundRect No{ 230, 90, 100, 50,4 }; //Noボタンに使う丸角長方形を定義する。
+	RoundRect r1{ 100, 90, 400, 50,4 }; //Yesボタンに使う丸角長方形を定義する。
+	RoundRect r2{ 100, 180, 400, 50,4 }; //Noボタンに使う丸角長方形を定義する。
+	RoundRect r3{ 100, 270, 400, 50,4 }; //Yesボタンに使う丸角長方形を定義する。
 	void init()
 	{
 		Graphics::SetBackground(Palette::White); //背景を白にする
 	}
 	void update()//シーンの間は、この中をループする。
 	{
-		const Color color_y(Yes.mouseOver ? 220 : 255); //マウスがYesの上にある時の色を定義する。
-		const Color color_n(No.mouseOver ? 220 : 255); //マウスがNoの上にある時の色を定義する。
-		Yes.draw(color_y); //Yesを色＝color_yで表示する。
-		No.draw(color_n); //Noを色＝color_nで表示する。
-		m_data->font(L"はい").drawAt(Yes.center, Palette::Black); //Yesの中央にBlackで文字を表示する。
-		m_data->font(L"いいえ").drawAt(No.center, Palette::Black); //Noの中央にBlackで文字を表示する。
-		m_data->font(L"別のマップを作りますか？").draw(0, 0, Palette::Black); //共通データのfontに従って文字を表示する。
-		if (Yes.leftClicked) //Yesが左クリックされた場合
+		const Color color_r1(r1.mouseOver ? 220 : 255); //マウスがYesの上にある時の色を定義する。
+		const Color color_r2(r2.mouseOver ? 220 : 255); //マウスがNoの上にある時の色を定義する。
+		const Color color_r3(r3.mouseOver ? 220 : 255); //マウスがNoの上にある時の色を定義する。
+		r1.draw(color_r1); //Yesを色＝color_yで表示する。
+		r2.draw(color_r2); //Noを色＝color_nで表示する。
+		r3.draw(color_r3);
+		m_data->font(L"別のマップを作る").drawAt(r1.center, Palette::Black); //Yesの中央にBlackで文字を表示する。
+		m_data->font(L"同じマップで作業する").drawAt(r2.center, Palette::Black); //Noの中央にBlackで文字を表示する。
+		m_data->font(L"終了").drawAt(r3.center, Palette::Black);
+
+		if (r1.leftClicked) //Yesが左クリックされた場合
 		{
 			for (int i = 0; i < m_data->x; i++)
 			{
@@ -276,7 +322,10 @@ public:
 			m_data->name = L"Please_Input_FileName"; //ファイル名を初期化する。
 			changeScene(L"INPUT_C"); //シーン"INPUT_C"に移動する。
 		}
-		else if (No.leftClicked) //Noが左クリックされた場合
+		else if (r2.leftClicked) {
+			changeScene(L"MAKE_MAP"); //シーン"MAKE_MAP"に移動する。
+		}
+		else if (r3.leftClicked) //Noが左クリックされた場合
 		{
 			System::Exit(); //システムを終了する。
 		}
@@ -309,9 +358,9 @@ void Main()
 void make_map(int map[MAX][MAX],int cnum, int x, int y,String name)
 {
 	TextWriter file(name + L".dat"); //"入力された名前"+".dat"を開く。
-	for (int i = 0; i < x; i++)
+	for (int i = 20; i < x+20; i++)
 	{
-		for (int j = 0; j < y; j++)
+		for (int j = 20; j < y+20; j++)
 		{
 			file.write(map[i][j]%cnum, L" "); //" "区切りで一行ずつ書き込む。
 		}
