@@ -38,6 +38,7 @@ struct Node {                        //このノードから伸びるエッジ�
 	double cost = MAX_COST;          //このノードへの現時点で判明している最小コスト
 	bool flag = false;               //探索済みか否か
 	bool done = false;               //確定ノードか否か
+	bool dflag = false; 			 //後退か否か
 };
 
 struct Drone {
@@ -768,10 +769,14 @@ int set_next(int *z) {
 
 /*----------------------dronego()---------------------------------------------------------------------------*/
 void dronego() {        //端点から端点までドローンの現在地を更新するごとにavoidanceを呼び出しつつ進む
+	d.dflag = false;
 
 	int movex, movey;   //現在地から端点に進むために移動しなきゃいけないx座標の数とy座標の数
 	movex = node[d.i][d.nextnode].x - d.x;  // movexを算出
 	movey = node[d.i][d.nextnode].y - d.y;  // moveyを算出
+	if(movey < 0){
+		d.dflag = true;
+	}
 	int *move = new int[std::abs(movex) + std::abs(movey) + 1];   //端点から端点に進むためにx座標とy座標をいくつずつ,どの順番で増減させるのかを格納.yが1増加するとき(方向で表すと前)は1,yが1減少(後ろ)が2,xが1増加(右)が3,xが1減少(左)が4として対応
 
 																  /*
@@ -977,27 +982,36 @@ void Drone::avoidance() {
 		z += 1;               //階層の変更
 		Dijkstra();
 	}
-	//後ろに下がる処理は後日実装予定
-	// else if(fil[2][0] && fil[0][2]){
-	//     while(true){
-	//         if(chk_wall(D, D.x-1,D.y)){
-	//             if(fil[0][0])
-	//             D.y -= 1;
-	//             update_fil();
-	//         }
-	//     }
-	// }
-
 }
 
 void Drone::update_fil() {       //nmap: 障害物情報込みのマップ
-	for (int ii = -2; ii<3; ii++) {
-		for (int j = -2; j<3; j++) {
-			if (map[x + ii][y + ii] != 0) {
-				fil[ii + 2][j + 2] = true;
-			}
-			else {
-				fil[ii + 2][j + 2] = false;
+	//     if(!dflag){
+    //     for(int i=-2;i<3;i++){
+    //         for(int j=-2;j<3;j++){
+    //             if(nmap[z][x+i][y+i]!=0){
+    //                 fil[i+2][j+2] = true;
+    //             }else{
+    //                 fil[i+2][j+2] = false;
+    //             }
+    //         }
+    //     }
+    // }else{
+    //     for(int i=0;i<5;i++){
+    //         for(int j=0;j<5j++){
+    //             if(nmap[z][x+i-2][y+i-2]!=0){
+    //                 fil[4-i][4-j] = true;
+    //             }else{
+    //                 fil[4-i][4-j] = false;
+    //             }
+    //         }
+    //     }
+    // }
+	for(int i=-2;i<3;i++){
+		for(int j=-2;j<3;j++){
+			if(map[x+ii][y+ii]!=0){
+				fil[ii+2][j+2] = true;
+			}else{
+				fil[ii+2][j+2] = false;
 			}
 		}
 	}

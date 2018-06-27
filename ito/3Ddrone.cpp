@@ -584,7 +584,7 @@ void make_dijkstra(std::string file, Node node[], int start, int goal, int route
 	for (int j = 0; j<k; j++) {
 		route[j] = tmp[k - j - 1];
 	}
-	std::cout << '\n';
+	//std::cout << '\n';
 }
 
 bool check_wall(Node node[], int map[][Y], int i_s, int i_g) {
@@ -768,36 +768,36 @@ void print_array(Node node[], int n) {
 	for (int i = 0; i<n; i++) {
 		label[i] = 0;
 	}
-	std::cout << "[distance between nodes]\n";
+	//std::cout << "[distance between nodes]\n";
 	for (int i = 0; i<n; i++) {
 		int n_edges = node[i].edges_to.size();
 		for (int j = 0; j<n_edges; j++) {
 			if (label[node[i].edges_to[j]] == 0) {
-				std::cout << i << "-" << node[i].edges_to[j] << " : " << node[i].edges_cost[j] << '\n';
+				//std::cout << i << "-" << node[i].edges_to[j] << " : " << node[i].edges_cost[j] << '\n';
 			}
 		}
 		label[i] = 1;
 	}
 	delete[]label;
-	std::cout << '\n';
+	//std::cout << '\n';
 
 	//各ノードまでのコストを表示
-	std::cout << "[cost of nodes]\n";
+	//std::cout << "[cost of nodes]\n";
 	for (int i = 0; i<n; i++) {
-		std::cout << "node:" << i << "(" << node[i].x << "," << node[i].y << ") ";
-		std::cout << " cost:" << node[i].cost << '\n';
+		//std::cout << "node:" << i << "(" << node[i].x << "," << node[i].y << ") ";
+		//std::cout << " cost:" << node[i].cost << '\n';
 	}
-	std::cout << '\n';
+	//std::cout << '\n';
 
 	//各ノードに入ってくるノード
-	std::cout << "[path]\n";
+	//std::cout << "[path]\n";
 	for (int i = 0; i<n; i++) {
-		std::cout << i << "-" << node[i].path << '\n';
+		//std::cout << i << "-" << node[i].path << '\n';
 	}
-	std::cout << '\n';
+	//std::cout << '\n';
 
 	//最短経路を表示
-	std::cout << "[Dijkstra rote]\n";
+	//std::cout << "[Dijkstra rote]\n";
 	//int dij[n];
 	int *dij = new int[n];
 	int i_d = 0;
@@ -810,9 +810,9 @@ void print_array(Node node[], int n) {
 		k = node[k].path;
 	}
 	for (int i = i_d - 1; i >= 0; i--) {
-		std::cout << dij[i] << " ";
+		//std::cout << dij[i] << " ";
 	}
-	std::cout << '\n' << '\n';
+	//std::cout << '\n' << '\n';
 	delete[]dij;
 }
 
