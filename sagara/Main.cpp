@@ -1009,7 +1009,7 @@ void Drone::avoidance(int move[], int a,int movex, int movey){
 				return;
 
 			}
-			else if (fil[1][2] || (right && !left)) {			//これ以上前に進めないよぉ.でもまだfrontに行ける
+			else if (fil[1][2] || (right && !left)) {			//これ以上右に進めないよぉ.でもまだfrontに行ける
 				right = true;
 				y += 1;
 				return;
