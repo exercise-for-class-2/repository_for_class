@@ -24,7 +24,7 @@
 
 int S_X = 5, S_Y = 5, S_Z = 0;  //startの座標
 int G_X = 87, G_Y = 4;         //goalの座標
-
+int dflagcou=0; //障害物回避が連続で起こらなかった回数をカウント
 							   //初期化のための, テンプレートを用いた関数
 template<typename A, size_t N, typename T>
 void FILL(A(&array)[N], const T &val) {
@@ -842,9 +842,9 @@ void dronego() {        //端点から端点までドローンの現在地を更
 
 	//ドローンの位置を更新していく
 	for (int i = 0; i<std::abs(movex) + std::abs(movey); i++) {
-
+		
 		d.avoidance(move,i,movex,movey);      //進もうとしてる座標が障害物でふさがってたら障害物回避。障害物回避が起こった場合D.flag==1になってる
-
+		
 		if (!d.flag) {      //障害物回避が起こらなかった場合
 			if (move[i] == 1) {
 				d.y += 1;   //前に1進む
@@ -860,13 +860,17 @@ void dronego() {        //端点から端点までドローンの現在地を更
 			}
 			struct Point p = { d.x, d.y };
 			route[d.i].push_back(p);
-			left  = false;
-			right = false;
-			back  = false;
+			dflagcou++;
+			if(dflagcou>5){
+				left  = false;
+				right = false;
+				back  = false;
+			}
 		}
 		else if (d.flag) {  //障害物回避が起こった場合
 			struct Point p = { d.x, d.y };
 			route[d.i].push_back(p);
+			dflagcou=0;
 			break;
 		}
 	}
