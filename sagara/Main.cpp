@@ -1003,7 +1003,7 @@ void Drone::avoidance(int move[], int a,int movex, int movey){
 			if (left && right && back) {			//もうどこにも進めない...世界線を変更しなければ
 													//階層の変更
 			}
-			else if (fil[0][1] || (left && !right)) {			//これ以上frontに進めないよぉ.でもまだ右に行ける
+			else if (fil[0][1] || (left && !right)) {			//これ以上frontmaeに進めないよぉ.でもまだ右に行ける
 				left = true;
 				x += 1;
 				return;
