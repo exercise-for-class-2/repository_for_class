@@ -893,7 +893,11 @@ void Drone::avoidance(int move, int movex, int movey) {
 	flag = true;
 	update_fil();
 	if (fil[0][1] && move == 1) {			//前に進みたいのに前方に障害物あり
+<<<<<<< HEAD
+		while (fil[1][0]) {
+=======
 		while (fil[0][1]) {
+>>>>>>> 5982f8f704898681af7f66e1a86bd76e7982bcff
 			update_fil();
 			if (left && right && back) {			//もうどこにも進めない...詰んだ
 				return;									//階層の変更
@@ -914,7 +918,11 @@ void Drone::avoidance(int move, int movex, int movey) {
 			else if (!fil[2][1] || (right && left)) {			//まだ後ろは行ける...
 				right = false;
 				left = false;
+<<<<<<< HEAD
+				y -= 1;
+=======
 				y += 1;
+>>>>>>> 5982f8f704898681af7f66e1a86bd76e7982bcff
 				struct Point p = { x, y };
 				route[i].push_back(p);
 			}
@@ -932,7 +940,11 @@ void Drone::avoidance(int move, int movex, int movey) {
 				route[i].push_back(p);
 			}
 		}
+<<<<<<< HEAD
+		y += 1;
+=======
 		y -= 1;
+>>>>>>> 5982f8f704898681af7f66e1a86bd76e7982bcff
 		struct Point p = { x, y };
 		route[i].push_back(p);
 	}
@@ -958,7 +970,11 @@ void Drone::avoidance(int move, int movex, int movey) {
 			else if (!fil[0][1] || (right && left)) {			//まだ前は行ける...
 				right = false;
 				left = false;
+<<<<<<< HEAD
+				y += 1;
+=======
 				y -= 1;
+>>>>>>> 5982f8f704898681af7f66e1a86bd76e7982bcff
 				struct Point p = { x, y };
 				route[i].push_back(p);
 			}
@@ -976,7 +992,11 @@ void Drone::avoidance(int move, int movex, int movey) {
 				route[i].push_back(p);
 			}
 		}
+<<<<<<< HEAD
+		y -= 1;
+=======
 		y += 1;
+>>>>>>> 5982f8f704898681af7f66e1a86bd76e7982bcff
 		struct Point p = { x, y };
 		route[i].push_back(p);
 
@@ -989,7 +1009,11 @@ void Drone::avoidance(int move, int movex, int movey) {
 			}
 			else if (fil[1][0] || (left && !front)) {			//これ以上左に進めないよぉ.でもまだfrontに行ける
 				left = true;
+<<<<<<< HEAD
+				y += 1;
+=======
 				y -= 1;
+>>>>>>> 5982f8f704898681af7f66e1a86bd76e7982bcff
 				struct Point p = { x, y };
 				route[i].push_back(p);
 
@@ -1003,7 +1027,11 @@ void Drone::avoidance(int move, int movex, int movey) {
 			else if (!fil[2][1] || (front && left)) { //まだ後ろは行ける...
 				front = false;
 				left = false;
+<<<<<<< HEAD
+				y -= 1;
+=======
 				y += 1;
+>>>>>>> 5982f8f704898681af7f66e1a86bd76e7982bcff
 				struct Point p = { x, y };
 				route[i].push_back(p);
 			}
@@ -1028,16 +1056,36 @@ void Drone::avoidance(int move, int movex, int movey) {
 	else if (fil[1][0] && move == 4) {		//左に行きたいのに障害物がある!!	ついでにleftはfrontの代わりとして使っているよ！
 		while (fil[1][0]) {
 			update_fil();
+<<<<<<< HEAD
+			if (left && right && back) {			//もうどこにも進めない...世界線を変更しなければ
+				return;										//階層の変更
+			}
+			else if (fil[0][1] || (left && !right)) {			//これ以上frontに進めないよぉ.でもまだ右に行ける
+				left = true;
+=======
 			if (front && right && back) {			//もうどこにも進めない...世界線を変更しなければ
 				return;										//階層の変更
 			}
 			else if (fil[0][1] || (front && !right)) {			//これ以上frontに進めないよぉ.でもまだ右に行ける
 				front = true;
+>>>>>>> 5982f8f704898681af7f66e1a86bd76e7982bcff
 				x += 1;
 				struct Point p = { x, y };
 				route[i].push_back(p);
 
 			}
+<<<<<<< HEAD
+			else if (fil[1][2] || (right && !left)) {			//これ以上右に進めないよぉ.でもまだfrontに行ける
+				right = true;
+				y += 1;
+				struct Point p = { x, y };
+				route[i].push_back(p);
+			}
+			else if (!fil[2][1] || (right && left)) { //まだ後ろは行ける...
+				right = false;
+				left = false;
+				y -= 1;
+=======
 			else if (fil[1][2] || (right && !front)) {			//これ以上右に進めないよぉ.でもまだfrontに行ける
 				right = true;
 				y -= 1;
@@ -1048,6 +1096,7 @@ void Drone::avoidance(int move, int movex, int movey) {
 				right = false;
 				front = false;
 				y += 1;
+>>>>>>> 5982f8f704898681af7f66e1a86bd76e7982bcff
 				struct Point p = { x, y };
 				route[i].push_back(p);
 			}
@@ -1077,7 +1126,11 @@ void Drone::avoidance(int move, int movex, int movey) {
 void Drone::update_fil() {
 	for (int j = 0; j<3; j++) {
 		for (int k = 0; k<3; k++) {
+<<<<<<< HEAD
+			if (nmap[z][x - 1 + j][y - 1 + k] != 0) {
+=======
 			if (nmap[z][x - 1 + j][y - 1 +  k] != 0) {
+>>>>>>> 5982f8f704898681af7f66e1a86bd76e7982bcff
 				fil[j][k] = true;
 			}
 			else {
