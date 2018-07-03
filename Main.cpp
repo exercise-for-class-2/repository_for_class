@@ -44,7 +44,7 @@ struct Node {                        //このノードから伸びるエッジ�
 
 struct Drone {
 	int x = S_X, y = S_Y, z = S_Z;		//ドローンの現在地の座標
-	bool fil[3][3];						//レーザーレンジファインダーより入手した情報を格納 
+	bool fil[3][3] = {};						//レーザーレンジファインダーより入手した情報を格納 
 	bool flag;
 	std::vector<int> shortest_route[MAX_Z]; //最短経路
 	int i = 0;
@@ -54,7 +54,7 @@ struct Drone {
 	int start[100];             //start node
 	int goal[100];              //goal node
 
-	void avoidance(int move[], int a, int movex, int movey);//緊急回避用プログラム
+	void avoidance(int move, int movex, int movey);//緊急回避用プログラム
 	void Dijkstra();            //Dijkstraによる経路計算をする関数
 	void get_map();             //マップ情報の取得
 	void update_fil();          //filを更新し、ドローン周辺の障害物情報を格納
@@ -107,7 +107,7 @@ void Main() {
 		file_map << "map" << std::setw(2) << std::setfill('0') << k << ".dat";
 		input_map(file_map.str(), map[k]);
 	}
-	
+
 	int i_d = 0;
 	int k_d = 0;
 	const Font font(30);
@@ -129,7 +129,7 @@ void Main() {
 			k_d++;
 		}
 		else {
-			
+
 			camera.pos = (Vec3(route[k_d][i_d].x + 1, k_d%Z * 10 + 50, route[k_d][i_d].y + 1));
 			camera.lookat = Vec3(route[k_d][i_d].x, k_d%Z, route[k_d][i_d].y);
 			Graphics3D::SetCamera(camera);
@@ -180,9 +180,9 @@ void start_drone() {
 		int i = 1;                  //d.shortest_routeのi番目のnode
 		d.nextnode = d.shortest_route[d.i][i];
 		while (d.nextnode != -1) {  //goalに着くまで繰り返す(goalに着いたらnextnode=-1にする)
-			left  = false;			//avoidance用のbool変数の初期化
+			left = false;			//avoidance用のbool変数の初期化
 			right = false;
-			back  = false;
+			back = false;
 			front = false;
 			dronego();
 			if (d.nextnode != d.goal[d.i]) {
@@ -843,7 +843,7 @@ void dronego() {        //端点から端点までドローンの現在地を更
 	//ドローンの位置を更新していく
 	for (int i = 0; i<std::abs(movex) + std::abs(movey); i++) {
 
-		d.avoidance(move,i,movex,movey);      //進もうとしてる座標が障害物でふさがってたら障害物回避。障害物回避が起こった場合D.flag==1になってる
+		d.avoidance(move[i], movex, movey);      //進もうとしてる座標が障害物でふさがってたら障害物回避。障害物回避が起こった場合D.flag==1になってる
 
 		if (!d.flag) {      //障害物回避が起こらなかった場合
 			if (move[i] == 1) {
@@ -860,13 +860,11 @@ void dronego() {        //端点から端点までドローンの現在地を更
 			}
 			struct Point p = { d.x, d.y };
 			route[d.i].push_back(p);
-			left  = false;
+			left = false;
 			right = false;
-			back  = false;
+			back = false;
 		}
 		else if (d.flag) {  //障害物回避が起こった場合
-			struct Point p = { d.x, d.y };
-			route[d.i].push_back(p);
 			break;
 		}
 	}
@@ -891,33 +889,37 @@ bool chk_wall(int map[][Y], int i, int j) {
 	}
 }
 
-void Drone::avoidance(int move[], int a,int movex, int movey){
-		flag = true;
-		update_fil();
-		if (fil[0][1] && move[a] == 1) {			//前に進みたいのに前方に障害物あり
+void Drone::avoidance(int move, int movex, int movey) {
+	flag = true;
+	update_fil();
+	if (fil[0][1] && move == 1) {			//前に進みたいのに前方に障害物あり
+		while (fil[1][0]) {
+			update_fil();
 			if (left && right && back) {			//もうどこにも進めない...詰んだ
-				//階層の変更
+				return;									//階層の変更
 			}
 			else if (fil[1][0] || (left && !right)) {			//これ以上左に進めないよぉ.でもまだ右に行ける
 				left = true;
 				x += 1;
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 
 			}
 			else if (fil[1][2] || (right && !left)) {			//これ以上右に進めないよぉ.でもまだ左に行ける
 				right = true;
 				x -= 1;
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 			}
 			else if (!fil[2][1] || (right && left)) {			//まだ後ろは行ける...
 				right = false;
 				left = false;
 				y -= 1;
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 			}
 			else if ((right && left) && fil[2][1]) {			 //もうどうしようもないねぇ…おわり!
 				back = true;
-				return;
 			}
 			else {												//俺は自由だ。どっちにも行けるぜ.右と左、どっちのほうが次のノードに近いかな？
 				if (movex > 0) {
@@ -926,33 +928,42 @@ void Drone::avoidance(int move[], int a,int movex, int movey){
 				else {
 					x -= 1;
 				}
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 			}
 		}
-		else if (fil[2][1] && move[a] == 2) {		//後ろに行きたいのに後ろに障害物があるぜ
+		y += 1;
+		struct Point p = { x, y };
+		route[i].push_back(p);
+	}
+	else if (fil[2][1] && move == 2) {		//後ろに行きたいのに後ろに障害物があるぜ
+		while (fil[2][1]) {
+			update_fil();
 			if (left && right && front) {			//もうどこにも進めない...詰んだ
-													//階層の変更
+				return;								//階層の変更
 			}
 			else if (fil[1][0] || (left && !right)) {			//これ以上左に進めないよぉ.でもまだ右に行ける
 				left = true;
 				x += 1;
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 
 			}
-			else if (fil[1][2] || (right && !right)) {			//これ以上右に進めないよぉ.でもまだ左に行ける
+			else if (fil[1][2] || (right && !left)) {			//これ以上右に進めないよぉ.でもまだ左に行ける
 				right = true;
 				x -= 1;
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 			}
 			else if (!fil[0][1] || (right && left)) {			//まだ前は行ける...
 				right = false;
 				left = false;
 				y += 1;
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 			}
 			else if ((right && left) && fil[0][1]) {			//もうどうしようもないねぇ...おーわり！
 				front = true;
-				return;
 			}
 			else {												//俺は自由だ。どっちにも行けるぜ.
 				if (movex > 0) {
@@ -961,33 +972,43 @@ void Drone::avoidance(int move[], int a,int movex, int movey){
 				else {
 					x -= 1;
 				}
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 			}
 		}
-		else if (fil[0][1] && move[a] == 3) {		//右に行きたいのに障害物がある!!	ついでにrightはfrontの代わりとして使っているよ！
-			if (left && right && back) {			//もうどこにも進めない...世界線を変更しなければ
-													//階層の変更
+		y -= 1;
+		struct Point p = { x, y };
+		route[i].push_back(p);
+
+	}
+	else if (fil[1][2] && move == 3) {		//右に行きたいのに障害物がある!!
+		while (fil[1][2]) {
+			update_fil();
+			if (left && front && back) {			//もうどこにも進めない...世界線を変更しなければ
+				return;								//階層の変更
 			}
-			else if (fil[1][0] || (left && !right)) {			//これ以上左に進めないよぉ.でもまだ右に行ける
+			else if (fil[1][0] || (left && !front)) {			//これ以上左に進めないよぉ.でもまだfrontに行ける
 				left = true;
-				x += 1;
-				return;
+				y += 1;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 
 			}
-			else if (fil[1][2] || (right && !right)) {			//これ以上前に進めないよぉ.でもまだ左に行ける
-				right = true;
+			else if (fil[0][1] || (front && !left)) {			//これ以上前に進めないよぉ.でもまだ左に行ける
+				front = true;
 				x -= 1;
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 			}
-			else if (!fil[0][1] || (right && left)) { //まだ前は行ける...
-				right = false;
+			else if (!fil[2][1] || (front && left)) { //まだ後ろは行ける...
+				front = false;
 				left = false;
 				y -= 1;
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 			}
-			else if ((right && left) && fil[0][1]) { //もうどうしようもないねぇ階層変更のためにavoidanceを呼ぼう!
+			else if ((front && left) && fil[2][1]) { //もうどうしようもないねぇ階層変更のためにavoidanceを呼ぼう!
 				back = true;
-				return;
 			}
 			else {									//俺は自由だ。どっちにも行けるぜ.しかし次のノードは前と後ろ、どっちが近いかな？
 				if (movey > 0) {
@@ -996,33 +1017,42 @@ void Drone::avoidance(int move[], int a,int movex, int movey){
 				else {
 					y -= 1;
 				}
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 			}
 		}
-		else if (fil[0][1] && move[a] == 4) {		//左に行きたいのに障害物がある!!	ついでにrightはfrontの代わりとして使っているよ！
+		x += 1;
+		struct Point p = { x, y };
+		route[i].push_back(p);
+	}
+	else if (fil[1][0] && move == 4) {		//左に行きたいのに障害物がある!!	ついでにleftはfrontの代わりとして使っているよ！
+		while (fil[1][0]) {
+			update_fil();
 			if (left && right && back) {			//もうどこにも進めない...世界線を変更しなければ
-													//階層の変更
+				return;										//階層の変更
 			}
-			else if (fil[1][0] || (left && !right)) {			//これ以上左に進めないよぉ.でもまだ右に行ける
+			else if (fil[0][1] || (left && !right)) {			//これ以上frontに進めないよぉ.でもまだ右に行ける
 				left = true;
 				x += 1;
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 
 			}
-			else if (fil[1][2] || (right && !right)) {			//これ以上前に進めないよぉ.でもまだ左に行ける
+			else if (fil[1][2] || (right && !left)) {			//これ以上右に進めないよぉ.でもまだfrontに行ける
 				right = true;
-				x -= 1;
-				return;
+				y += 1;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 			}
-			else if (!fil[0][1] || (right && left)) { //まだ前は行ける...
+			else if (!fil[2][1] || (right && left)) { //まだ後ろは行ける...
 				right = false;
 				left = false;
 				y -= 1;
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 			}
-			else if ((right && left) && fil[0][1]) { //もうどうしようもないねぇ階層変更のためにavoidanceを呼ぼう!
+			else if ((right && left) && fil[2][1]) { //もうどうしようもないねぇ階層変更のためにavoidanceを呼ぼう!
 				back = true;
-				return;
 			}
 			else {									//俺は自由だ。どっちにも行けるぜ.前と後ろどっちがいいかな？
 				if (movey > 0) {
@@ -1031,34 +1061,40 @@ void Drone::avoidance(int move[], int a,int movex, int movey){
 				else {
 					y -= 1;
 				}
-				return;
+				struct Point p = { x, y };
+				route[i].push_back(p);
 			}
 		}
-		else {
-			flag = false;
-		}
+		x -= 1;
+		struct Point p = { x, y };
+		route[i].push_back(p);
+	}
+	else {
+		flag = false;
+	}
 }
 
 void Drone::update_fil() {
-	for(int j=-1;j<2;j++){
-		for(int k=-1;k<2;k++){
-			if(nmap[z][x+j][y+k]!=0){
-				fil[j+1][k+1] = true;
-			}else{
-				fil[j+1][k+1] = false;
+	for (int j = 0; j<3; j++) {
+		for (int k = 0; k<3; k++) {
+			if (nmap[z][x - 1 + j][y - 1 +  k] != 0) {
+				fil[j][k] = true;
+			}
+			else {
+				fil[j][k] = false;
 			}
 		}
 	}
 	/*}else{
-		for(int i=0;i<5;i++){
-			for (int j = 0; j < 5; j++) {
-				if(nmap[z][x+i-2][y+i-2]!=0){
-					fil[4-i][4-j] = true;
-				}else{
-					fil[4-i][4-j] = false;
-				}
-			}
-		}
+	for(int i=0;i<5;i++){
+	for (int j = 0; j < 5; j++) {
+	if(nmap[z][x+i-2][y+i-2]!=0){
+	fil[4-i][4-j] = true;
+	}else{
+	fil[4-i][4-j] = false;
+	}
+	}
+	}
 	}*/
 
 }
