@@ -1003,7 +1003,7 @@ void Drone::avoidance(int move, int movex, int movey) {
 			else if (!fil[2][1] || (front && left)) { //まだ後ろは行ける...
 				front = false;
 				left = false;
-				y -= 1;
+				y += 1;
 				struct Point p = { x, y };
 				route[i].push_back(p);
 			}
@@ -1047,7 +1047,7 @@ void Drone::avoidance(int move, int movex, int movey) {
 			else if (!fil[2][1] || (right && left)) { //まだ後ろは行ける...
 				right = false;
 				left = false;
-				y -= 1;
+				y += 1;
 				struct Point p = { x, y };
 				route[i].push_back(p);
 			}
