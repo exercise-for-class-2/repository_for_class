@@ -12,7 +12,7 @@
 #include <cstdlib>
 
 
-
+#define GNPLT "C:/PROGRA~1/gnuplot/bin/gnuplot.exe" 
 #define STRLN 100       //char型配列のサイズ
 #define X 101           //mapの横幅
 #define Y 101           //mapの縦幅
@@ -68,6 +68,7 @@ int map_flag[Z][X][Y];					//過去にgoalに設定されたか否か
 std::vector<int> map_flag_i[Z];			//過去にgoalに設定されたノードを保存
 int nmap[Z][X][Y];						//障害物情報込みのマップ
 bool front, right, left, back;			//avoidanceの前後左右の壁の判定用のブール変数
+int i_gnu = 0;                      //gnuplotで使うカウンタ
 
 
 void Main();
@@ -95,6 +96,7 @@ void make_dat(int i);                                                       //ma
 bool chk_wall(int map[][Y], int i, int j);                                   //d.avoidance()内で用いる壁の判定
 void input_map(std::string file, int map[][Y]);								//map情報をmap[X][Y]に格納
 int set_next(int *z);                                                       //次の階層を決める
+int gnuplot_spc(char *file1, char *file2);
 
 																			/*-------------------------------------main文-----------------------------------------*/
 void Main() {
@@ -791,6 +793,9 @@ void dronego() {        //端点から端点までドローンの現在地を更
 	int movex, movey;   //現在地から端点に進むために移動しなきゃいけないx座標の数とy座標の数
 	movex = node[d.i][d.nextnode].x - d.x;  // movexを算出
 	movey = node[d.i][d.nextnode].y - d.y;  // moveyを算出
+											//if(movey < 0){
+											//d.dflag = true;
+											//}
 	int *move = new int[std::abs(movex) + std::abs(movey) + 1];   //端点から端点に進むためにx座標とy座標をいくつずつ,どの順番で増減させるのかを格納.yが1増加するとき(方向で表すと前)は1,yが1減少(後ろ)が2,xが1増加(右)が3,xが1減少(左)が4として対応
 
 																  /*
@@ -846,7 +851,6 @@ void dronego() {        //端点から端点までドローンの現在地を更
 		d.avoidance(move[i], movex, movey);      //進もうとしてる座標が障害物でふさがってたら障害物回避。障害物回避が起こった場合D.flag==1になってる
 
 		if (!d.flag) {      //障害物回避が起こらなかった場合
-			LOG(L"drone ", d.x, L" ", d.y );
 			if (move[i] == 1) {
 				d.y += 1;   //前に1進む
 			}
@@ -890,17 +894,17 @@ bool chk_wall(int map[][Y], int i, int j) {
 void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は地図の取り込みの処理の書き方により、感覚にそぐわない関数に仕上がっていますが、気にしないでください具体的には
 	struct Point p;													//　x/y→→→
 	front = false;													//　↓ 0 1 2
-	left  = false;													//	↓ 4 5 6
+	left = false;													//	↓ 4 5 6
 	right = false;													//	↓ 7 8 9
-	back  = false;													//となっているため、前に進むためにはx座標を+1しなければなりません
-	flag  = true;													//なお、dronego関数に関しては現在の座標とノードの座標から導いてるので感覚的に正しい関数となっています
+	back = false;													
+	flag = true;													
 	bool ff, fr, fl, fb;		//f(f:front,r:right,l:left,r:right
 	update_fil();
-	ff = fil[1][2];
+	ff = fil[1][0];
 	fr = fil[2][1];
 	fl = fil[0][1];
-	fb = fil[1][0];
-	LOG(x, L" " , y);
+	fb = fil[1][2];
+	LOG(x, L" ", y, L" ", move);
 
 	if (ff && (move == 1)) {			//前に進みたいのに前方に障害物あり
 		while (ff) {
@@ -922,7 +926,7 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 			else if ((fr || right) && (!fl && !left)) {			//右に進めない、かつ左に進むことができるとき
 				if (chk_wall(map[z], x, y - 1)) {
 					right = true;
-					y += 1;
+					x -= 1;
 					p = { x, y };
 					route[i].push_back(p);
 				}
@@ -932,10 +936,10 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 						p = { x,y };
 						route[i].push_back(p);
 						update_fil();
-						ff = fil[1][2];
+						ff = fil[1][0];
 						fr = fil[2][1];
 						fl = fil[0][1];
-						fb = fil[1][0];
+						fb = fil[1][2];
 					}
 					y -= 1;
 					p = { x,y };
@@ -944,7 +948,7 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 
 			}
 			else if ((fl || left) && (!fr && !right)) {			//左に進めず右に進むことができるとき
-				if (chk_wall(map[z], x , y + 1)) {
+				if (chk_wall(map[z], x, y + 1)) {
 					left = true;
 					y -= 1;
 					p = { x, y };
@@ -956,24 +960,24 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 						p = { x, y };
 						route[i].push_back(p);
 						update_fil();
-						ff = fil[1][2];
+						ff = fil[1][0];
 						fr = fil[2][1];
 						fl = fil[0][1];
-						fb = fil[1][0];
+						fb = fil[1][2];
 					}
 					x -= 1;
 					p = { x,y };
 					route[i].push_back(p);
 				}
-				
+
 			}
 			update_fil();
-			ff = fil[1][2];
+			ff = fil[1][0];
 			fr = fil[2][1];
 			fl = fil[0][1];
-			fb = fil[1][0];
+			fb = fil[1][2];
 
-			
+
 		}
 		/*y += 1;
 		p = { x, y };
@@ -981,7 +985,7 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 	}
 	else if (fb && (move == 2)) {		//後ろに行きたいのに後ろに障害物があるぜ
 		while (fb) {
-			
+
 			if (left && right && front) {			//もうどこにも進めない...詰んだ
 				return;								//階層の変更
 			}
@@ -990,7 +994,7 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 					x += 1;
 					p = { x, y };
 					route[i].push_back(p);
-					
+
 				}
 				else {
 					while (fr) {
@@ -1017,10 +1021,10 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 					p = { x,y };
 					route[i].push_back(p);
 					update_fil();
-					ff = fil[1][2];
+					ff = fil[1][0];
 					fr = fil[2][1];
 					fl = fil[0][1];
-					fb = fil[1][0];
+					fb = fil[1][2];
 				}
 
 			}
@@ -1037,24 +1041,24 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 						p = { x,y };
 						route[i].push_back(p);
 						update_fil();
-						ff = fil[1][2];
+						ff = fil[1][0];
 						fr = fil[2][1];
 						fl = fil[0][1];
-						fb = fil[1][0];
+						fb = fil[1][2];
 					}
 					y -= 1;
 					p = { x,y };
 					route[i].push_back(p);
 				}
 			}
-			
+
 			update_fil();
-			ff = fil[1][2];
+			ff = fil[1][0];
 			fr = fil[2][1];
 			fl = fil[0][1];
-			fb = fil[1][0];
+			fb = fil[1][2];
 
-			
+
 		}
 		/*y -= 1;
 		p = { x, y };
@@ -1062,8 +1066,9 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 
 	}
 	else if (fr && (move == 3)) {		//右に行きたいのに障害物がある!!
+		LOG(ff, L" ", fr, L" ", fl, L" ", fb);
 		while (fr) {
-			
+
 			if (left && front && back) {			//もうどこにも進めない...世界線を変更しなければ
 				return;								//階層の変更
 			}
@@ -1072,7 +1077,7 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 					y += 1;
 					p = { x, y };
 					route[i].push_back(p);
-					
+
 				}
 				else {
 					y -= 1;
@@ -1089,14 +1094,14 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 				}
 				else {
 					while (fb) {
-						y += 1;
+						y -= 1;
 						p = { x,y };
 						route[i].push_back(p);
 						update_fil();
-						ff = fil[1][2];
+						ff = fil[1][0];
 						fr = fil[2][1];
 						fl = fil[0][1];
-						fb = fil[1][0];
+						fb = fil[1][2];
 					}
 					y -= 1;
 					p = { x,y };
@@ -1104,7 +1109,7 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 				}
 
 			}
-			else if ((ff && front) || (!fb && !back)) {			//前に進めず後ろに進めるとき
+			else if ((ff || front) || (!fb && !back)) {			//前に進めず後ろに進めるとき
 				if (chk_wall(map[z], x + 1, y)) {
 					front = true;
 					x -= 1;
@@ -1117,10 +1122,10 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 						p = { x,y };
 						route[i].push_back(p);
 						update_fil();
-						ff = fil[1][2];
+						ff = fil[1][0];
 						fr = fil[2][1];
 						fl = fil[0][1];
-						fb = fil[1][0];
+						fb = fil[1][2];
 					}
 					y += 1;
 					p = { x,y };
@@ -1146,12 +1151,12 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 			//	}
 			//}
 			update_fil();
-			ff = fil[1][2];
+			ff = fil[1][0];
 			fr = fil[2][1];
 			fl = fil[0][1];
-			fb = fil[1][0];
+			fb = fil[1][2];
 
-				
+
 		}
 		//x += 1;
 		//p = { x, y };
@@ -1159,7 +1164,7 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 	}
 	else if (fl && (move == 4)) {		//左に行きたいのに障害物がある!!
 		while (fl) {
-			
+
 			if (front && right && back) {			//もうどこにも進めない...世界線を変更しなければ
 				return;										//階層の変更
 			}
@@ -1211,7 +1216,7 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 					p = { x,y };
 					route[i].push_back(p);
 				}
-				
+
 			}
 			//else if (!fr && front && back) {					 //前後に進むことができず右に進むことができるとき
 			//	front = false;
@@ -1231,10 +1236,10 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 			//	}
 			//}
 			update_fil();
-			ff = fil[1][2];
+			ff = fil[1][0];
 			fr = fil[2][1];
 			fl = fil[0][1];
-			fb = fil[1][0];
+			fb = fil[1][2];
 		}
 		//x -= 1;
 		//p = { x, y };
@@ -1248,7 +1253,7 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 void Drone::update_fil() {
 	for (int j = 0; j<3; j++) {
 		for (int k = 0; k<3; k++) {
-			if (map[z][x - 1 + j][y - 1 + k] != 0) {
+			if (nmap[z][x - 1 + j][y - 1 + k] != 0) {
 				fil[j][k] = true;
 			}
 			else {
@@ -1277,3 +1282,20 @@ void input_map(std::string file, int map[][Y]) {
 }
 
 /*---------------------------------------------------------------------------------------------------------*/
+int gnuplot_spc(char *file1, char *file2) {
+	FILE *gp; if ((gp = _popen(GNPLT, "w")) == NULL) { printf("ERR\n"); exit(1); }
+	fprintf(gp, "set size square\nset colorsequence classic\n");
+	fprintf(gp, "set style l 1 lt 1 lc 1 lw 1 pt 5 ps 1\n");
+	fprintf(gp, "set style l 2 lt 1 lc 3 lw 1 pt 5 ps 1\n");
+	fprintf(gp, "set ticscale 0\nset xtics 10\nset ytics 10\n");
+	fprintf(gp, "set xrange[0:100]\nset yrange[0:100]\n");
+	fprintf(gp, "unset key\n");
+	fprintf(gp, "set terminal png\n");
+	fprintf(gp, "plot '%s.dat' linestyle 1\n", file1);
+	fprintf(gp, "set output '%s_%d.png'\n", file1, i_gnu);
+	fprintf(gp, "replot '%s.dat' with lp linestyle 2\n", file2);
+	//system("pause"); 
+	fprintf(gp, "exit\n");
+	i_gnu++;
+	return fclose(gp);
+}
