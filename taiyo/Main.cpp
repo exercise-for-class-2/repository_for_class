@@ -170,6 +170,13 @@ void start_drone() {
 		nfile_map << "nmap" << std::setw(2) << std::setfill('0') << k << ".dat";
 		input_map(nfile_map.str(), nmap[k]);
 	}
+	std::ofstream os("nmap.dat");
+	for (int i = 0; i < X; i++) {
+		for (int j = 0; j < Y; j++) {
+			os << nmap[0][i][j] << " ";
+		}
+		os << std::endl;
+	}
 
 	d.get_map();
 	d.Dijkstra();
@@ -182,10 +189,6 @@ void start_drone() {
 		int i = 1;                  //d.shortest_routeのi番目のnode
 		d.nextnode = d.shortest_route[d.i][i];
 		while (d.nextnode != -1) {  //goalに着くまで繰り返す(goalに着いたらnextnode=-1にする)
-			left = false;			//avoidance用のbool変数の初期化
-			right = false;
-			back = false;
-			front = false;
 			dronego();
 			if (d.nextnode != d.goal[d.i]) {
 				i++;
@@ -851,6 +854,7 @@ void dronego() {        //端点から端点までドローンの現在地を更
 		d.avoidance(move[i], movex, movey);      //進もうとしてる座標が障害物でふさがってたら障害物回避。障害物回避が起こった場合D.flag==1になってる
 
 		if (!d.flag) {      //障害物回避が起こらなかった場合
+			LOG(L"drone ", d.x, L" ", d.y);
 			if (move[i] == 1) {
 				d.y += 1;   //前に1進む
 			}
@@ -891,20 +895,21 @@ bool chk_wall(int map[][Y], int i, int j) {
 	}
 }
 
-void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は地図の取り込みの処理の書き方により、感覚にそぐわない関数に仕上がっていますが、気にしないでください具体的には
-	struct Point p;													//　x/y→→→
-	front = false;													//　↓ 0 1 2
-	left = false;													//	↓ 4 5 6
-	right = false;													//	↓ 7 8 9
+void Drone::avoidance(int move, int movex, int movey) {				
+	struct Point p;													
+	front = false;
+	left = false;
+	right = false;
 	back = false;													
 	flag = true;													
 	bool ff, fr, fl, fb;		//f(f:front,r:right,l:left,r:right
+	LOG(x, L" ", y, L" ", move);
 	update_fil();
-	ff = fil[1][0];
+	ff = fil[1][2];
 	fr = fil[2][1];
 	fl = fil[0][1];
-	fb = fil[1][2];
-	LOG(x, L" ", y, L" ", move);
+	fb = fil[1][0];
+	
 
 	if (ff && (move == 1)) {			//前に進みたいのに前方に障害物あり
 		while (ff) {
@@ -923,65 +928,51 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 					route[i].push_back(p);
 				}
 			}
-			else if ((fr || right) && (!fl && !left)) {			//右に進めない、かつ左に進むことができるとき
-				if (chk_wall(map[z], x, y - 1)) {
-					right = true;
-					x -= 1;
-					p = { x, y };
-					route[i].push_back(p);
-				}
-				else {
-					while (fr) {
-						x -= 1;
-						p = { x,y };
-						route[i].push_back(p);
-						update_fil();
-						ff = fil[1][0];
-						fr = fil[2][1];
-						fl = fil[0][1];
-						fb = fil[1][2];
-					}
+			else if ((fl || left) && (fr || right)) {
+				if (!fb) {
+					left = false;
+					right = false;
 					y -= 1;
 					p = { x,y };
 					route[i].push_back(p);
 				}
+				else {
+					back = true;
+				}
+			}
+			else if (fr || right) {			//右に進めない、かつ左に進むことができるとき
+				x -= 1;
+				p = { x,y };
+				route[i].push_back(p);
+				update_fil();
+				ff = fil[1][2];
+				fr = fil[2][1];
+				fl = fil[0][1];
+				fb = fil[1][0];
 
 			}
-			else if ((fl || left) && (!fr && !right)) {			//左に進めず右に進むことができるとき
-				if (chk_wall(map[z], x, y + 1)) {
-					left = true;
-					y -= 1;
-					p = { x, y };
-					route[i].push_back(p);
-				}
-				else {
-					while (fl) {
-						x -= 1;
-						p = { x, y };
-						route[i].push_back(p);
-						update_fil();
-						ff = fil[1][0];
-						fr = fil[2][1];
-						fl = fil[0][1];
-						fb = fil[1][2];
-					}
-					x -= 1;
-					p = { x,y };
-					route[i].push_back(p);
-				}
+			else if (fl || left) {			//左に進めず右に進むことができるとき
+				x += 1;
+				p = { x, y };
+				route[i].push_back(p);
+				update_fil();
+				ff = fil[1][2];
+				fr = fil[2][1];
+				fl = fil[0][1];
+				fb = fil[1][0];
 
 			}
 			update_fil();
-			ff = fil[1][0];
+			ff = fil[1][2];
 			fr = fil[2][1];
 			fl = fil[0][1];
-			fb = fil[1][2];
+			fb = fil[1][0];
 
 
 		}
-		/*y += 1;
+		y += 1;
 		p = { x, y };
-		route[i].push_back(p);*/
+		route[i].push_back(p);
 	}
 	else if (fb && (move == 2)) {		//後ろに行きたいのに後ろに障害物があるぜ
 		while (fb) {
@@ -994,75 +985,69 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 					x += 1;
 					p = { x, y };
 					route[i].push_back(p);
-
-				}
-				else {
-					while (fr) {
-						y += 1;
-						p = { x, y };
-						route[i].push_back(p);
-					}
-				}
-			}
-			else if ((fl || left) && (!fr && !right)) {			//左に進めず右に進めるとき
-				if (chk_wall(map[z], x, y + 1)) {
-					left = true;
-					y -= 1;
-					p = { x, y };
-					route[i].push_back(p);
-				}
-				else {
-					while (fl) {
-						x += 1;
-						p = { x,y };
-						route[i].push_back(p);
-					}
-					y += 1;
-					p = { x,y };
-					route[i].push_back(p);
 					update_fil();
-					ff = fil[1][0];
+					ff = fil[1][2];
 					fr = fil[2][1];
 					fl = fil[0][1];
-					fb = fil[1][2];
-				}
+					fb = fil[1][0];
 
-			}
-			else if ((fr || right) && (!fl && left)) {			//右に進めず、左に進めるとき
-				if (chk_wall(map[z], x, y - 1)) {
-					right = true;
-					y += 1;
-					p = { x, y };
-					route[i].push_back(p);
 				}
 				else {
-					while (fr) {
-						x += 1;
-						p = { x,y };
-						route[i].push_back(p);
-						update_fil();
-						ff = fil[1][0];
-						fr = fil[2][1];
-						fl = fil[0][1];
-						fb = fil[1][2];
-					}
-					y -= 1;
+					x -= 1;
+					p = { x, y };
+					route[i].push_back(p);
+					update_fil();
+					ff = fil[1][2];
+					fr = fil[2][1];
+					fl = fil[0][1];
+					fb = fil[1][0];
+				}
+			}
+			else if ((fl || left) && (fr || right)) {
+				if (!ff) {
+					left = false;
+					right = false;
+					y += 1;
 					p = { x,y };
 					route[i].push_back(p);
 				}
+				else {
+					front = true;
+				}
+			}
+			else if (fl || left) {			//左に進めず右に進めるとき
+				x += 1;
+				p = { x,y };
+				route[i].push_back(p);
+				update_fil();
+				ff = fil[1][2];
+				fr = fil[2][1];
+				fl = fil[0][1];
+				fb = fil[1][0];
+
+			}
+			else if (fr || right) {			//右に進めず、左に進めるとき
+				x -= 1;
+				p = { x,y };
+				route[i].push_back(p);
+				update_fil();
+				ff = fil[1][2];
+				fr = fil[2][1];
+				fl = fil[0][1];
+				fb = fil[1][0];
 			}
 
 			update_fil();
-			ff = fil[1][0];
+			ff = fil[1][2];
 			fr = fil[2][1];
 			fl = fil[0][1];
-			fb = fil[1][2];
+			fb = fil[1][0];
 
 
 		}
-		/*y -= 1;
+		y -= 1;
 		p = { x, y };
-		route[i].push_back(p);*/
+		route[i].push_back(p);
 
 	}
 	else if (fr && (move == 3)) {		//右に行きたいのに障害物がある!!
@@ -1077,90 +1062,68 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 					y += 1;
 					p = { x, y };
 					route[i].push_back(p);
+					update_fil();
+					ff = fil[1][2];
+					fr = fil[2][1];
+					fl = fil[0][1];
+					fb = fil[1][0];
 
 				}
 				else {
 					y -= 1;
 					p = { x, y };
 					route[i].push_back(p);
+					update_fil();
+					ff = fil[1][2];
+					fr = fil[2][1];
+					fl = fil[0][1];
+					fb = fil[1][0];
 				}
 			}
-			else if ((fb || back) && (!ff && !front)) {			//後ろに進めず、前に進むことができるとき
-				if (chk_wall(map[z], x - 1, y)) {
-					back = true;
-					x += 1;
-					p = { x, y };
-					route[i].push_back(p);
-				}
-				else {
-					while (fb) {
-						y -= 1;
-						p = { x,y };
-						route[i].push_back(p);
-						update_fil();
-						ff = fil[1][0];
-						fr = fil[2][1];
-						fl = fil[0][1];
-						fb = fil[1][2];
-					}
-					y -= 1;
-					p = { x,y };
-					route[i].push_back(p);
-				}
-
-			}
-			else if ((ff || front) || (!fb && !back)) {			//前に進めず後ろに進めるとき
-				if (chk_wall(map[z], x + 1, y)) {
-					front = true;
+			else if ((ff || front) && (fb || back)) {
+				if (!fl) {
+					front = false;
+					back = false;
 					x -= 1;
-					p = { x, y };
-					route[i].push_back(p);
-				}
-				else {
-					while (ff) {
-						y += 1;
-						p = { x,y };
-						route[i].push_back(p);
-						update_fil();
-						ff = fil[1][0];
-						fr = fil[2][1];
-						fl = fil[0][1];
-						fb = fil[1][2];
-					}
-					y += 1;
 					p = { x,y };
 					route[i].push_back(p);
 				}
+				else {
+					left = true;
+				}
 			}
-			//else if (!fl && front && back) {					//前後に進めず左に進むことができるとき
-			//	front = false;
-			//	back = false;
-			//	x -= 1;
-			//	p = { x, y };
-			//	route[i].push_back(p);
-			//	if (movey > 0) {
-			//		y -= 1;
-			//		p = { x, y };
-			//		route[i].push_back(p);
-			//		
-			//	}
-			//	else {
-			//		y += 1;
-			//		p = { x, y };
-			//		route[i].push_back(p);
-			//	}
-			//}
+			else if (fb || back) {			//後ろに進めず、前に進むことができるとき
+				y += 1;
+				p = { x,y };
+				route[i].push_back(p);
+				update_fil();
+				ff = fil[1][2];
+				fr = fil[2][1];
+				fl = fil[0][1];
+				fb = fil[1][0];
+
+			}
+			else if (ff || front) {			//前に進めず後ろに進めるとき
+				y -= 1;
+				p = { x,y };
+				route[i].push_back(p);
+				update_fil();
+				ff = fil[1][2];
+				fr = fil[2][1];
+				fl = fil[0][1];
+				fb = fil[1][0];
+			}
 			update_fil();
-			ff = fil[1][0];
+			ff = fil[1][2];
 			fr = fil[2][1];
 			fl = fil[0][1];
-			fb = fil[1][2];
+			fb = fil[1][0];
 
 
 		}
-		//x += 1;
-		//p = { x, y };
-		//route[i].push_back(p);
+		x += 1;
+		p = { x, y };
+		route[i].push_back(p);
 	}
 	else if (fl && (move == 4)) {		//左に行きたいのに障害物がある!!
 		while (fl) {
@@ -1180,70 +1143,50 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 					route[i].push_back(p);
 				}
 			}
-			else if ((ff || front) && (!fb && !back)) {			//前には進めず後ろに進むことができるとき
-				if (chk_wall(map[z], x + 1, y)) {
-					front = true;
-					y -= 1;
-					p = { x, y };
-					route[i].push_back(p);
-				}
-				else {
-					while (ff) {
-						x += 1;
-						p = { x,y };
-						route[i].push_back(p);
-					}
-					y += 1;
+			else  if((ff || front) && (fb || back)) {
+				if (!fr) {
+					front = false;
+					back = false;
+					x += 1;
 					p = { x,y };
 					route[i].push_back(p);
 				}
-
-			}
-			else if ((fb || back) && (!ff && !front)) {			//後ろには進めず前に進むことができるとき
-				if (chk_wall(map[z], x - 1, y)) {
-					back = true;
-					y += 1;
-					p = { x, y };
-					route[i].push_back(p);
-				}
 				else {
-					while (fb) {
-						x -= 1;
-						p = { x,y };
-						route[i].push_back(p);
-					}
-					x -= 1;
-					p = { x,y };
-					route[i].push_back(p);
+					right = true;
 				}
+			}
+			else if (ff || front) {			//前には進めず後ろに進むことができるとき
+				y -= 1;
+				p = { x,y };
+				route[i].push_back(p);
+				update_fil();
+				ff = fil[1][2];
+				fr = fil[2][1];
+				fl = fil[0][1];
+				fb = fil[1][0];
 
 			}
-			//else if (!fr && front && back) {					 //前後に進むことができず右に進むことができるとき
-			//	front = false;
-			//	back = false;
-			//	x += 1;
-			//	p = { x, y };
-			//	route[i].push_back(p);
-			//	if (movey > 0) {
-			//		y -= 1;
-			//		p = { x, y };
-			//		route[i].push_back(p);
-			//	}
-			//	else {
-			//		y += 1;
-			//		p = { x, y };
-			//		route[i].push_back(p);
-			//	}
-			//}
+			else if (fb || back) {			//後ろには進めず前に進むことができるとき
+				y += 1;
+				p = { x,y };
+				route[i].push_back(p);
+				update_fil();
+				ff = fil[1][2];
+				fr = fil[2][1];
+				fl = fil[0][1];
+				fb = fil[1][0];
+
+			}
+
 			update_fil();
-			ff = fil[1][0];
+			ff = fil[1][2];
 			fr = fil[2][1];
 			fl = fil[0][1];
-			fb = fil[1][2];
+			fb = fil[1][0];
 		}
-		//x -= 1;
-		//p = { x, y };
-		//route[i].push_back(p);
+		x -= 1;
+		p = { x, y };
+		route[i].push_back(p);
 	}
 	else {
 		flag = false;
@@ -1251,15 +1194,19 @@ void Drone::avoidance(int move, int movex, int movey) {				//avoidance関数は�
 }
 
 void Drone::update_fil() {
-	for (int j = 0; j<3; j++) {
-		for (int k = 0; k<3; k++) {
-			if (nmap[z][x - 1 + j][y - 1 + k] != 0) {
-				fil[j][k] = true;
+	for (int j = 0; j < 3; j++) {
+		//LOG(L"nmap ", nmap[z][x + (j / 3) - 1][y - 1], L" ", nmap[z][x + (j / 3) - 1][y], L" ", nmap[z][x + (j / 3) - 1][y + 1]);
+		for (int k = 0; k < 3; k++) {
+			if (nmap[z][x + k  - 1][y + j - 1] != 0) {
+				fil[k][j] = true;
 			}
 			else {
-				fil[j][k] = false;
+				fil[k][j] = false;
 			}
 		}
+	}
+	for (int j = 0; j < 3; j++) {
+		LOG(fil[0][j], L" ", fil[1][j], L" ", fil[2][j]);
 	}
 }
 /*-----------------------------------------------------------------------------------------------------------*/
