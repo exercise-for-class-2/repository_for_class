@@ -114,13 +114,20 @@ void Main() {
 	int k_d = 0;
 	const Font font(30);
 	while (System::Update()) {
+		const Color color_d((k_d % 7) != 0 ? HSV(360 / (k_d % 7)) : HSV(0, 0, 100));
 		for (int k = (k_d%Z); k < (k_d%Z) + 1; k++) {
+			const Color color_map((k_d % 7) != 0 ? HSV(360 / (k_d % 7)) : HSV(0, 0, 100));
 			for (int i = 0; i < X; i++) {
 				for (int j = 0; j < Y; j++) {
 					if (nmap[k][i][j] != 0) {
-						//for (int l = k; l < k * 10; l++) {
-						Box(Vec3(i, k, j), 1).draw(Palette::Cyan);
-						//}
+						if (map[k][i][j] == 0) {
+							Box(Vec3(i, k, j), 1).draw(Palette::Red);
+						}
+						else {
+							//for (int l = k; l < k * 10; l++) {
+							Box(Vec3(i, k, j), 1).draw(color_map);
+							//}
+						}
 					}
 				}
 			}
@@ -136,12 +143,12 @@ void Main() {
 			camera.lookat = Vec3(route[k_d][i_d].x, k_d%Z, route[k_d][i_d].y);
 			Graphics3D::SetCamera(camera);
 			//Graphics3D::FreeCamera();
-			if (k_d%Z == 0) { Box(Vec3(route[k_d][i_d].x, (k_d%Z) * 10 + 5, route[k_d][i_d].y), 1).draw(Palette::White); }
-			else { Box(Vec3(route[k_d][i_d].x, (k_d%Z) * 10 + 5, route[k_d][i_d].y), 1).draw(Palette::Red); }
-			Cylinder(Vec3(G_X, 0, G_Y), 2, Z * 10).draw(Palette::Aqua);
+			Box(Vec3(route[k_d][i_d].x, (k_d%Z) * 10 + 5, route[k_d][i_d].y), 1).draw(color_d);
+			Sphere(Vec3(G_X, k_d%Z, G_Y), 5).draw(Palette::Aqua);
 			font(L"(").draw();  font(route[k_d][i_d].x).draw(31, 0);
 			font(L", ").draw(80, 0); font(route[k_d][i_d].y).draw(102, 0);
-			font(L")\n").draw(231, 0);
+			font(L", ").draw(151, 0); font(k_d%Z).draw(173, 0);
+			font(L")\n").draw(221, 0);
 			if (i_d == (int)(route[k_d].size()) - 1) {
 				i_d = 0;
 				k_d++;
