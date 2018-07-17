@@ -17,8 +17,11 @@
      drone3D_log.html
      input_start_goal.dat
    [MapExample]
-     map01.dat ~ map09.dat
-     nmap01.dat ~ nmap09.dat
+     [map]
+      map01.dat ~ map09.dat
+     [nmap]
+      nmap01.dat ~ nmap09.dat
+     input_sg.dat
    [map_maker.zip]
      MapMaker.exe
      MapMaker.exp
@@ -27,6 +30,7 @@
      MapMaker.lib
      MapMaker.pdb
      MapMaker_log.html
+     
 
 ***
 使い方
@@ -42,7 +46,7 @@
      B + 左クリック:クリックした場所を中心として10*10マスの正方形を塗りつぶす。
 2. map_maker.zip内に作成したマップが保存されているのでそれをReleaseフォルダ内に移動する。
 
-3. input_start_goal.datに任意の開始地点と目的地を以下のように入力する。
+3. input_sg.datに任意の開始地点と目的地を以下のように入力する。
 　　[開始地点のx座標] [開始地点のy座標] [開始地点のz座標]
 　　[目的地のx座標] [目的地のy座標] [目的地のz座標]
 　　入力例:
