@@ -128,7 +128,7 @@ public:
 		const Color color(button.mouseOver ? 220 : 255); //マウスがbuttonの上にある時の色を定義する。
 		button.draw(color); //buttonを色＝colorで表示する。
 		m_data->font(L"OK").drawAt(button.center, Palette::Black); //buttonの中央にBlackで文字を表示する。
-		m_data->font(L"INPUT THE HIGHT OF THE MAP").draw(0, 0, Palette::Black); //共通データのfontに従って文字を表示する。
+		m_data->font(L"INPUT THE HEIGHT OF THE MAP").draw(0, 0, Palette::Black); //共通データのfontに従って文字を表示する。
 		m_data->font(m_data->y).draw(0, 30, Palette::Black); //共通データのfontに従って文字を表示する。
 		Input::GetCharsHelper(text); //textに文字入力を受け取る。
 		if (button.leftClicked) //左クリックをした場合
@@ -207,7 +207,7 @@ public:
 		m_data->font(L"YES").drawAt(Yes.center, Palette::Black); //Yesの中央にBlackで文字を表示する。
 		m_data->font(L"NO").drawAt(No.center, Palette::Black); //Noの中央にBlackで文字を表示する。
 		m_data->font(L"IS THIS INPUT CORRECT?").draw(0, 0, Palette::Black); //共通データのfontに従って文字を表示する。
-		m_data->font(L"THE NUMBER OF ATTRIBUTES", m_data->cnum, L" WIDTH：", m_data->x, L" HIGHT：", m_data->y).draw(0, 30, Palette::Black); //共通データのfontに従って文字を表示する。
+		m_data->font(L"THE NUMBER OF ATTRIBUTES", m_data->cnum, L" WIDTH：", m_data->x, L" HEIGHT：", m_data->y).draw(0, 30, Palette::Black); //共通データのfontに従って文字を表示する。
 		if (Yes.leftClicked) //Yesが左クリックされた場合
 		{
 			changeScene(L"MAKE_MAP");
@@ -305,7 +305,7 @@ public:
 		const Color color(button.mouseOver ? 220 : 255); //マウスがbuttonの上にある時の色を定義する。
 		button.draw(color); //buttonを色＝colorで表示する。
 		m_data->font(L"OK").drawAt(button.center, Palette::Black); //buttonの中央にBlackで文字を表示する。
-		m_data->font(L"INPUT THE HIGHT OF THE MAP").draw(0, 0, Palette::Black); //共通データのfontに従って文字を表示する。
+		m_data->font(L"INPUT THE HEIGHT OF THE MAP").draw(0, 0, Palette::Black); //共通データのfontに従って文字を表示する。
 		m_data->font(m_data->y).draw(0, 30, Palette::Black); //共通データのfontに従って文字を表示する。
 		Input::GetCharsHelper(text); //textに文字入力を受け取る。
 		if (button.leftClicked) //左クリックをした場合
@@ -340,7 +340,7 @@ class INPUT_CHECK : public MyApp::Scene //入力が正しいか確認するシ�
 			m_data->font(L"OK").drawAt(Yes.center, Palette::Black); //Yesの中央にBlackで文字を表示する。
 			m_data->font(L"NO").drawAt(No.center, Palette::Black); //Noの中央にBlackで文字を表示する。
 			m_data->font(L"IS THIS INPUT CORRECT?").draw(0, 0, Palette::Black); //共通データのfontに従って文字を表示する。
-			m_data->font(L"THE NUMBER OF ATTRIBUTES", m_data->cnum, L" WIDTH：", m_data->x, L" HIGHT：", m_data->y).draw(0, 30, Palette::Black); //共通データのfontに従って文字を表示する。
+			m_data->font(L"THE NUMBER OF ATTRIBUTES", m_data->cnum, L" WIDTH：", m_data->x, L" HEIGHT：", m_data->y).draw(0, 30, Palette::Black); //共通データのfontに従って文字を表示する。
 			if (Yes.leftClicked) //Yesが左クリックされた場合
 			{
 				for (int i = 20; i < m_data->x+20; i++) { //mapの周りを壁で囲う
