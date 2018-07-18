@@ -1,4 +1,4 @@
-
+﻿
 #include <Siv3D.hpp>
 #include <iostream>
 #include <cstdio>
@@ -20,7 +20,7 @@
 #define MAX_COST 10000
 #define MAX_NODE 10000
 #define MAX 10000
-#define MAX_Z 10        //階層移動可能な回数
+#define MAX_Z 100       //階層移動可能な回数
 
 template<typename A, size_t N, typename T>		//初期化のための, テンプレートを用いた関数
 void FILL(A(&array)[N], const T &val) {
@@ -69,6 +69,7 @@ std::vector<int> map_flag_i[Z];			//過去にgoalに設定されたノードを�
 int nmap[Z][X][Y];						//障害物情報込みのマップ
 bool front, right, left, back;			//avoidanceの前後左右の壁の判定用のブール変数
 int i_gnu = 0;                          //gnuplotで使うカウンタ
+bool flag_next = true;					//set_next()で使う true:階層移動は上昇, false:階層移動は下降
 
 
 void Main();
@@ -137,6 +138,9 @@ void Main() {
 							//}
 						}
 					}
+					else if (map[k][i][j] != 0) {
+						Box(Vec3(i, k, j), 1).draw(color_map);
+					}
 				}
 			}
 		}
@@ -157,6 +161,7 @@ void Main() {
 			font(L", ").draw(80, 0); font(route[k_d][i_d].y).draw(102, 0);
 			font(L", ").draw(151, 0); font(k_d%IZ).draw(173, 0);
 			font(L")\n").draw(221, 0);
+
 			if (i_d == (int)(route[k_d].size()) - 1) {
 				i_d = 0;
 				k_d++;
@@ -428,7 +433,7 @@ void Drone::Dijkstra() {
 	change_map(map, map_buffer);
 	output_map(map_buffer);
 	int z_now = 0;
-	while (x != G_X || y != G_Y) {
+	while (x != G_X || y != G_Y || z != G_Z) {
 		make_dat(z_now);
 		std::stringstream file_map, file_all, file_edges, file_node, file_dijkstra;
 		char gnufile_all[STRLN], gnufile_edges[STRLN], gnufile_dijkstra[STRLN];
@@ -793,11 +798,27 @@ bool check_wall_last(int map[][Y], int s_x, int s_y, int g_x, int g_y) {
 }
 
 int set_next(int *z) {
-	if (IZ - 1 == *z) {
-		*z = 0;
+	//LOG(L"z:", *z);
+	int sign;
+	if (flag_next) {
+		sign = 1;	
 	}
 	else {
-		*z += 1;
+		sign = -1;
+	}
+
+	if (*z == IZ - 1 && IZ >= 2) {
+		*z = IZ - 2;
+		flag_next = false;
+	}
+	else if (*z == 0 && IZ >= 2) {
+		*z = 1;
+		flag_next = true;
+	}
+	else {
+		if (IZ >= 2) {
+			*z += (sign * 1);
+		}
 	}
 	int i = *z;
 	return i;
@@ -870,7 +891,7 @@ void dronego() {        //端点から端点までドローンの現在地を更
 		d.avoidance(move[i], movex, movey);      //進もうとしてる座標が障害物でふさがってたら障害物回避。障害物回避が起こった場合D.flag==1になってる
 
 		if (!d.flag) {      //障害物回避が起こらなかった場合
-			LOG(L"drone ", d.x, L" ", d.y);
+			//LOG(L"drone ", d.x, L" ", d.y);
 			if (move[i] == 1) {
 				d.y += 1;   //前に1進む
 			}
@@ -919,7 +940,7 @@ void Drone::avoidance(int move, int movex, int movey) {
 	back = false;
 	flag = true;
 	bool ff, fr, fl, fb;		//f(f:front,r:right,l:left,r:right
-	LOG(x, L" ", y, L" ", move);
+	//LOG(x, L" ", y, L" ", move);
 	update_fil();
 	ff = fil[1][2];
 	fr = fil[2][1];
@@ -1067,7 +1088,7 @@ void Drone::avoidance(int move, int movex, int movey) {
 
 	}
 	else if (fr && (move == 3)) {		//右に行きたいのに障害物がある!!
-		LOG(ff, L" ", fr, L" ", fl, L" ", fb);
+		//LOG(ff, L" ", fr, L" ", fl, L" ", fb);
 		while (fr) {
 
 			if (left && front && back) {			//もうどこにも進めない...世界線を変更しなければ
@@ -1221,9 +1242,9 @@ void Drone::update_fil() {
 			}
 		}
 	}
-	for (int j = 0; j < 3; j++) {
-		LOG(fil[0][j], L" ", fil[1][j], L" ", fil[2][j]);
-	}
+	//for (int j = 0; j < 3; j++) {
+		//LOG(fil[0][j], L" ", fil[1][j], L" ", fil[2][j]);
+	//}
 }
 /*-----------------------------------------------------------------------------------------------------------*/
 
