@@ -43,6 +43,8 @@
       MapMaker.lib
       MapMaker.pdb
       MapMaker_log.html
+  READ_ME.txt
+  Algorithm.txt
       
 
 ***
